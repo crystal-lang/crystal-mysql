@@ -2,6 +2,8 @@ class MySql::ResultSet
   make_named_tuple ColumnSpec, [catalog, schema, table, org_table, name, org_name, character_set, column_length, column_type]
   alias ColumnType = Int32 | String | Nil
 
+  getter columns
+
   def initialize(@conn, column_count)
     @columns = [] of ColumnSpec
 

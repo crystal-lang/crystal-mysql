@@ -16,14 +16,14 @@ class MySql::ResultSet
       @conn.read_packet do |row_packet|
         row = [] of String?
         @columns.times do
-          length = row_packet.read_byte!
-          case length
+          header = row_packet.read_byte!
+          case header
           when 0xfe
             return
           when 0xfb
             row << nil
           else
-            row << row_packet.read_string(length)
+            row << row_packet.read_string(row_packet.read_lenenc_int(header))
           end
         end
         yield row

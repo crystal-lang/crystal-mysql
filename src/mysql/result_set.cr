@@ -31,12 +31,12 @@ class MySql::ResultSet
     end
   end
 
-  def read_column_value(c, value)
+  def read_column_value(colspec, packet, length)
     # Column types
     # http://dev.mysql.com/doc/internals/en/com-query-response.html#column-type
-    case c.column_type
-    when 3 then value.to_i
-    else value
+    case colspec.column_type
+    when 3 then packet.read_int_string(length)
+    else packet.read_string(length)
     end
   end
 
@@ -53,8 +53,8 @@ class MySql::ResultSet
           if header == 0xfb
             row << nil
           else
-            value = row_packet.read_string(row_packet.read_lenenc_int(header))
-            row << read_column_value(colspec, value)
+            length = row_packet.read_lenenc_int(header)
+            row << read_column_value(colspec, row_packet, length)
           end
         end
         yield row

@@ -87,6 +87,14 @@ class MySql::Packet
     Array(UInt8).new(length) { |i| read_byte! }
   end
 
+  def read_int_string(length)
+    value = 0
+    length.times do
+      value = value * 10 + read_byte!.chr.to_i
+    end
+    value
+  end
+
   def discard
     read(@remaining) if @remaining > 0
   end

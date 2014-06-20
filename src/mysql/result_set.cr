@@ -13,7 +13,7 @@ class MySql::ResultSet
         schema = packet.read_lenenc_string
         table = packet.read_lenenc_string
         org_table = packet.read_lenenc_string
-        name = puts packet.read_lenenc_string
+        name = packet.read_lenenc_string
         org_name = packet.read_lenenc_string
         character_set = packet.read_lenenc_int
         column_length = packet.read_fixed_int(2)

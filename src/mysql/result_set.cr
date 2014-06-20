@@ -42,17 +42,17 @@ class MySql::ResultSet
     eof = false
     while !eof
       @conn.read_packet do |row_packet|
+        header = row_packet.read_byte!
+        return if header == 0xfe # EOF
+
         row = [] of ColumnType
-        @columns.each do |c|
-          header = row_packet.read_byte!
-          case header
-          when 0xfe
-            return
-          when 0xfb
+        @columns.each_with_index do |colspec, index|
+          header = row_packet.read_byte! if index > 0
+          if header == 0xfb
             row << nil
           else
             value = row_packet.read_string(row_packet.read_lenenc_int(header))
-            row << read_column_value(c, value)
+            row << read_column_value(colspec, value)
           end
         end
         yield row

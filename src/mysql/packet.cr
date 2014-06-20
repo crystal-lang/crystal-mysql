@@ -52,8 +52,21 @@ class MySql::Packet
     end
   end
 
+  def read_lenenc_string
+    length = read_lenenc_int
+    read_string(length)
+  end
+
   def read_int
     read_byte!.to_i + (read_byte!.to_i << 8) + (read_byte!.to_i << 16) + (read_byte!.to_i << 24)
+  end
+
+  def read_fixed_int(n)
+    int = 0
+    n.times do |i|
+      int += (read_byte!.to_i << (i * 8))
+    end
+    int
   end
 
   def read_lenenc_int(h = read_byte!)

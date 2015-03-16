@@ -17,12 +17,9 @@ class MySql::Connection
         caps = (caps >> 8)
       end
 
-      packet.write [0x00_u8, 0x00_u8, 0x00_u8, 0x00_u8]
-      packet.write_byte 0x00_u8
-      23.times { packet.write_byte 0x00_u8 }
-      packet.write username.cstr, username.length + 1
-      packet.write_byte 00_u8
-      # 20.times { packet.write_byte 0x00_u8 }
+      28.times { packet.write_byte 0_u8 }
+      packet << username
+      2.times { packet.write_byte 0_u8 }
     end
 
     read_packet do |packet|
@@ -45,17 +42,18 @@ class MySql::Connection
   def write_packet(seq = 0)
     content = StringIO.new
     yield content
-    length = content.buffer.length
+    bytesize = content.bytesize
+
     packet = StringIO.new
     3.times do
-      packet.write_byte (length & 0xff_u8).to_u8
-      length >>= 8
+      packet.write_byte (bytesize & 0xff_u8).to_u8
+      bytesize >>= 8
     end
     packet.write_byte seq.to_u8
 
-    packet.write content.buffer.buffer, content.buffer.length
+    packet << content
 
-    @socket.write packet.buffer.buffer, packet.buffer.length
+    @socket << packet
     @socket.flush
   end
 
@@ -67,7 +65,7 @@ class MySql::Connection
   def execute(sql)
     write_packet do |packet|
       packet.write_byte 0x03u8
-      packet.write sql.cstr, sql.length
+      packet << sql
     end
 
     read_packet do |packet|

@@ -1,1 +1,1 @@
-require "mysql/*"
+require "./mysql/*"

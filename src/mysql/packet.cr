@@ -1,33 +1,20 @@
-module IO
-  def read_fully(buffer : UInt8*, count)
-    while count > 0
-      read_bytes = read(buffer, count)
-      raise "EOF" if read_bytes == 0
-      count -= read_bytes
-      buffer += read_bytes
-    end
-    count
-  end
-end
-
 class MySql::Packet
   include IO
 
   def initialize(@io)
-    header :: UInt32
-    header_ptr = pointerof(header) as UInt8*
-    io.read_fully(header_ptr, 4)
-    @length = @remaining = header_ptr[0].to_i + (header_ptr[1].to_i << 8) + (header_ptr[2].to_i << 16)
-    @seq = header_ptr[3]
+    header :: UInt8[4]
+    io.read_fully(header.to_slice)
+    @length = @remaining = header[0].to_i + (header[1].to_i << 8) + (header[2].to_i << 16)
+    @seq = header[3]
   end
 
-  def to_s
-    "MySql::Packet[length: #{@length}, seq: #{@seq}, remaining: #{@remaining}]"
+  def to_s(io)
+    io << "MySql::Packet[length: " << io << @length << ", seq: " << @seq << ", remaining: " << @remaining << "]"
   end
 
-  def read(buffer : UInt8*, count)
+  def read(slice : Slice(UInt8), count)
     return 0 unless @remaining > 0
-    read_bytes = @io.read(buffer, count)
+    read_bytes = @io.read(slice, count)
     @remaining -= read_bytes
     read_bytes
   end
@@ -37,17 +24,17 @@ class MySql::Packet
   end
 
   def read_string
-    String.new_from_buffer do |buffer|
+    String.build do |buffer|
       while (b = read_byte) != 0 && b
-        buffer.append_byte b if b
+        buffer.write_byte b if b
       end
     end
   end
 
   def read_string(length)
-    String.new_from_buffer do |buffer|
+    String.build do |buffer|
       length.times do
-        buffer.append_byte read_byte!
+        buffer.write_byte read_byte!
       end
     end
   end

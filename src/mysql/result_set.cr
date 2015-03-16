@@ -1,6 +1,7 @@
 class MySql::ResultSet
-  make_named_tuple ColumnSpec, [catalog, schema, table, org_table, name, org_name, character_set, column_length, column_type]
-  alias ColumnType = Int32 | String | Nil
+  record ColumnSpec, catalog, schema, table, org_table, name, org_name, character_set, column_length, column_type
+
+  alias Value = Int32 | String | Nil
 
   getter columns
 
@@ -47,7 +48,7 @@ class MySql::ResultSet
         header = row_packet.read_byte!
         return if header == 0xfe # EOF
 
-        row = [] of ColumnType
+        row = [] of Value
         @columns.each_with_index do |colspec, index|
           header = row_packet.read_byte! if index > 0
           if header == 0xfb

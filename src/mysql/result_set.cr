@@ -1,7 +1,7 @@
 class MySql::ResultSet
   record ColumnSpec, catalog, schema, table, org_table, name, org_name, character_set, column_length, column_type
 
-  alias Value = Int32 | String | Nil
+  alias Value = Int32 | String | Array(UInt8) | Nil
 
   getter columns
 
@@ -37,7 +37,10 @@ class MySql::ResultSet
     # http://dev.mysql.com/doc/internals/en/com-query-response.html#column-type
     case colspec.column_type
     when 3 then packet.read_int_string(length)
-    else packet.read_string(length)
+    when 0xfc
+      packet.read_byte_array(length)
+    else
+      packet.read_string(length)
     end
   end
 

@@ -2,7 +2,7 @@ require "socket"
 
 class MySql::Connection
   def initialize(host, port, username, password)
-    @socket = BufferedIO.new(TCPSocket.new(host, port))
+    @socket = TCPSocket.new(host, port)
     read_packet do |packet|
       protocol_version = packet.read_byte!
       version = packet.read_string
@@ -40,11 +40,11 @@ class MySql::Connection
   end
 
   def write_packet(seq = 0)
-    content = StringIO.new
+    content = MemoryIO.new
     yield content
     bytesize = content.bytesize
 
-    packet = StringIO.new
+    packet = MemoryIO.new
     3.times do
       packet.write_byte (bytesize & 0xff_u8).to_u8
       bytesize >>= 8

@@ -2,7 +2,7 @@ class MySql::Packet
   include IO
 
   def initialize(@io)
-    header :: UInt8[4]
+    header = uninitialized UInt8[4]
     io.read_fully(header.to_slice)
     @length = @remaining = header[0].to_i + (header[1].to_i << 8) + (header[2].to_i << 16)
     @seq = header[3]
@@ -12,11 +12,15 @@ class MySql::Packet
     io << "MySql::Packet[length: " << io << @length << ", seq: " << @seq << ", remaining: " << @remaining << "]"
   end
 
-  def read(slice : Slice(UInt8), count)
+  def read(slice : Slice(UInt8))
     return 0 unless @remaining > 0
-    read_bytes = @io.read(slice, count)
+    read_bytes = @io.read(slice)
     @remaining -= read_bytes
     read_bytes
+  end
+
+  def write(slice)
+    raise "not implemented"
   end
 
   def read_byte!
@@ -83,6 +87,6 @@ class MySql::Packet
   end
 
   def discard
-    read(@remaining) if @remaining > 0
+    skip(@remaining) if @remaining > 0
   end
 end

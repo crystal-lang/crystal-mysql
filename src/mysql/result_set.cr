@@ -1,11 +1,12 @@
-class MySql::ResultSet
+class MySql::ResultSet < DB::ResultSet
   record ColumnSpec, catalog, schema, table, org_table, name, org_name, character_set, column_length, column_type
-
-  alias Value = Int32 | String | Array(UInt8) | Nil
 
   getter columns
 
-  def initialize(@conn, column_count)
+  def initialize(statement, column_count)
+    super(statement)
+    @conn = statement.connection
+
     @columns = [] of ColumnSpec
 
     # Parse column definitions
@@ -30,39 +31,104 @@ class MySql::ResultSet
     @conn.read_packet do |eof_packet|
       eof_packet.read_byte
     end
+
+    @column_index = 0 # next column index to return
+    @header = 0
   end
 
-  def read_column_value(colspec, packet, length)
-    # Column types
-    # http://dev.mysql.com/doc/internals/en/com-query-response.html#column-type
-    case colspec.column_type
-    when 3 then packet.read_int_string(length)
-    when 0xfc
-      packet.read_byte_array(length)
-    else
-      packet.read_string(length)
+  def do_close
+    super
+
+    while move_next
+    end
+
+    if row_packet = @row_packet
+      row_packet.discard
     end
   end
 
-  def each_row
-    eof = false
-    while !eof
-      @conn.read_packet do |row_packet|
-        header = row_packet.read_byte!
-        return if header == 0xfe # EOF
+  def move_next : Bool
+    # TODO skip all remaining cols in the current row
+    # TODO check if a row can be skipped without reading any column
+    if row_packet = @row_packet
+      row_packet.discard
+    end
 
-        row = [] of Value
-        @columns.each_with_index do |colspec, index|
-          header = row_packet.read_byte! if index > 0
-          if header == 0xfb
-            row << nil
-          else
-            length = row_packet.read_lenenc_int(header)
-            row << read_column_value(colspec, row_packet, length)
-          end
-        end
-        yield row
+    @row_packet = row_packet = @conn.build_read_packet
+
+    @header = row_packet.read_byte!
+    return false if @header == 0xfe # EOF
+    @column_index = 0
+    return true
+  end
+
+  def column_count : Int32
+    @columns.size
+  end
+
+  def column_name(index : Int32) : String
+    @columns[index].name
+  end
+
+  def column_type(index : Int32)
+    # Column types
+    # http://dev.mysql.com/doc/internals/en/com-query-response.html#column-type
+    case @columns[index].column_type
+    when 0x03; Int32
+    when 0x08; Int64
+    when 0xfc; 0xfb; Slice(UInt8)
+    else       String
+    end
+  end
+
+  def read_if_not_nil
+    row_packet = @row_packet.not_nil!
+
+    header =
+      if @column_index > 0
+        row_packet.read_byte!
+      else
+        @header
       end
+    @column_index += 1
+    if header == 0xfb
+      nil
+    else
+      length = row_packet.read_lenenc_int(header)
+      yield row_packet, length
+    end
+  end
+
+  def read?(t : String.class) : String?
+    read_if_not_nil do |row_packet, length|
+      row_packet.read_string(length)
+    end
+  end
+
+  def read?(t : Int32.class) : Int32?
+    read_if_not_nil do |row_packet, length|
+      row_packet.read_int_string(length)
+    end
+  end
+
+  def read?(t : Int64.class) : Int64?
+    read_if_not_nil do |row_packet, length|
+      row_packet.read_int64_string(length)
+    end
+  end
+
+  def read?(t : Float32.class) : Float32?
+    raise "not implemented"
+  end
+
+  def read?(t : Float64.class) : Float64?
+    raise "not implemented"
+  end
+
+  def read?(t : Slice(UInt8).class) : Slice(UInt8)?
+    read_if_not_nil do |row_packet, length|
+      ary = row_packet.read_byte_array(length.to_i32)
+      Slice.new(ary.to_unsafe, ary.size)
     end
   end
 end

@@ -68,7 +68,7 @@ class MySql::Packet
     elsif h == 0xfd
       read_byte!.to_i + (read_byte!.to_i << 8) + (read_byte!.to_i << 16)
     elsif h == 0xfe
-      raise "8 byte int not implemented"
+      read_bytes(Int64, IO::ByteFormat::LittleEndian)
     else
       raise "Unexpected int length"
     end
@@ -82,6 +82,14 @@ class MySql::Packet
     value = 0
     length.times do
       value = value * 10 + read_byte!.chr.to_i
+    end
+    value
+  end
+
+  def read_int64_string(length)
+    value = 0i64
+    length.times do
+      value = value * 10i64 + read_byte!.chr.to_i.to_i64
     end
     value
   end

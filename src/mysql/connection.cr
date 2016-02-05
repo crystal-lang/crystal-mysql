@@ -1,7 +1,15 @@
 require "socket"
 
-class MySql::Connection
-  def initialize(host, port, username, password)
+class MySql::Connection < DB::Connection
+  def initialize(db : DB::Database)
+    super(db)
+
+    host = db.uri.host.not_nil!
+    port = db.uri.port || 3306
+    username = db.uri.user
+    password = db.uri.password
+    # TODO use password
+
     @socket = TCPSocket.new(host, port)
     read_packet do |packet|
       protocol_version = packet.read_byte!
@@ -22,6 +30,24 @@ class MySql::Connection
       2.times { packet.write_byte 0_u8 }
     end
 
+    read_ok_or_err
+
+    path = db.uri.path
+    if path && path.size > 1
+      # http://dev.mysql.com/doc/internals/en/com-init-db.html
+      initial_catalog = path[1..-1]
+
+      write_packet do |packet|
+        packet.write_byte 2_u8
+        packet << initial_catalog
+      end
+
+      read_ok_or_err
+    end
+  end
+
+  # :nodoc:
+  def read_ok_or_err
     read_packet do |packet|
       if packet.read_byte == 255
         4.times { packet.read_byte }
@@ -30,8 +56,9 @@ class MySql::Connection
     end
   end
 
+  # :nodoc:
   def read_packet
-    packet = Packet.new(@socket)
+    packet = build_read_packet
     begin
       yield packet
     ensure
@@ -39,6 +66,12 @@ class MySql::Connection
     end
   end
 
+  # :nodoc:
+  def build_read_packet
+    Packet.new(@socket)
+  end
+
+  # :nodoc:
   def write_packet(seq = 0)
     content = MemoryIO.new
     yield content
@@ -57,26 +90,13 @@ class MySql::Connection
     @socket.flush
   end
 
+  # :nodoc:
   def handle_err_packet(packet)
     8.times { packet.read_byte! }
     raise packet.read_string
   end
 
-  def execute(sql)
-    write_packet do |packet|
-      packet.write_byte 0x03u8
-      packet << sql
-    end
-
-    read_packet do |packet|
-      case header = packet.read_byte.not_nil!
-      when 255
-        handle_err_packet(packet)
-      when 0
-        Result.new(packet)
-      else
-        ResultSet.new(self, packet.read_lenenc_int(header))
-      end
-    end
+  def build_statement(query)
+    MySql::Statement.new(self, query)
   end
 end

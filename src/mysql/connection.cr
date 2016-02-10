@@ -73,7 +73,7 @@ class MySql::Connection < DB::Connection
 
   # :nodoc:
   def write_packet(seq = 0)
-    content = MemoryIO.new
+    content = MemoryIO.new # TODO refactor to a packet wrapper
     yield content
     bytesize = content.bytesize
 
@@ -94,6 +94,34 @@ class MySql::Connection < DB::Connection
   def handle_err_packet(packet)
     8.times { packet.read_byte! }
     raise packet.read_string
+  end
+
+  # :nodoc:
+  def read_column_definitions(target, column_count)
+    # Parse column definitions
+    # http://dev.mysql.com/doc/internals/en/com-query-response.html#packet-Protocol::ColumnDefinition
+    column_count.times do
+      self.read_packet do |packet|
+        catalog = packet.read_lenenc_string
+        schema = packet.read_lenenc_string
+        table = packet.read_lenenc_string
+        org_table = packet.read_lenenc_string
+        name = packet.read_lenenc_string
+        org_name = packet.read_lenenc_string
+        character_set = packet.read_lenenc_int
+        column_length = packet.read_fixed_int(2)
+        packet.read_fixed_int(4) # Skip (length of fixed-length fields, always 0x0c)
+        column_type = packet.read_fixed_int(1)
+
+        target << ColumnSpec.new(catalog, schema, table, org_table, name, org_name, character_set, column_length, column_type)
+      end
+    end
+
+    if column_count > 0
+      self.read_packet do |eof_packet|
+        eof_packet.read_byte # TODO assert EOF Packet
+      end
+    end
   end
 
   def build_statement(query)

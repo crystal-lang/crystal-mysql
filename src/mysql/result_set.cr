@@ -1,38 +1,24 @@
-class MySql::ResultSet < DB::ResultSet
-  record ColumnSpec, catalog, schema, table, org_table, name, org_name, character_set, column_length, column_type
+require "bit_array"
 
+struct BitArray
+  getter bits
+end
+
+class MySql::ResultSet < DB::ResultSet
   getter columns
 
   def initialize(statement, column_count)
     super(statement)
     @conn = statement.connection
 
-    @columns = [] of ColumnSpec
-
-    # Parse column definitions
-    # http://dev.mysql.com/doc/internals/en/com-query-response.html#packet-Protocol::ColumnDefinition
-    column_count.times do
-      @conn.read_packet do |packet|
-        catalog = packet.read_lenenc_string
-        schema = packet.read_lenenc_string
-        table = packet.read_lenenc_string
-        org_table = packet.read_lenenc_string
-        name = packet.read_lenenc_string
-        org_name = packet.read_lenenc_string
-        character_set = packet.read_lenenc_int
-        column_length = packet.read_fixed_int(2)
-        packet.read_fixed_int(4) # Skip (length of fixed-length fields, always 0x0c)
-        column_type = packet.read_fixed_int(1)
-
-        @columns << ColumnSpec.new(catalog, schema, table, org_table, name, org_name, character_set, column_length, column_type)
-      end
-    end
-
-    @conn.read_packet do |eof_packet|
-      eof_packet.read_byte
-    end
+    columns = @columns = [] of ColumnSpec
+    @conn.read_column_definitions(columns, column_count)
 
     @column_index = 0 # next column index to return
+
+    @null_bitmap = BitArray.new(columns.size + 7 + 2)
+    @null_bitmap_slice = Slice.new(@null_bitmap.bits as Pointer(UInt8), (columns.size + 7 + 2) / 8)
+
     @header = 0
   end
 
@@ -59,6 +45,7 @@ class MySql::ResultSet < DB::ResultSet
     @header = row_packet.read_byte!
     return false if @header == 0xfe # EOF
     @column_index = 0
+    row_packet.read(@null_bitmap_slice)
     return true
   end
 
@@ -84,36 +71,37 @@ class MySql::ResultSet < DB::ResultSet
   def read_if_not_nil
     row_packet = @row_packet.not_nil!
 
-    header =
-      if @column_index > 0
-        row_packet.read_byte!
-      else
-        @header
-      end
+    is_nil = @null_bitmap[@column_index + 2]
     @column_index += 1
-    if header == 0xfb
+    if is_nil
       nil
     else
-      length = row_packet.read_lenenc_int(header)
-      yield row_packet, length
+      yield row_packet
     end
   end
 
   def read?(t : String.class) : String?
-    read_if_not_nil do |row_packet, length|
+    read_if_not_nil do |row_packet|
+      header = row_packet.read_byte!
+      length = row_packet.read_lenenc_int(header)
+
       row_packet.read_string(length)
     end
   end
 
   def read?(t : Int32.class) : Int32?
-    read_if_not_nil do |row_packet, length|
+    read_if_not_nil do |row_packet|
+      raise "not implemented"
+      header = row_packet.read_byte!
+      length = row_packet.read_lenenc_int(header)
+
       row_packet.read_int_string(length)
     end
   end
 
   def read?(t : Int64.class) : Int64?
-    read_if_not_nil do |row_packet, length|
-      row_packet.read_int64_string(length)
+    read_if_not_nil do |row_packet|
+      row_packet.read_bytes(Int64, IO::ByteFormat::LittleEndian)
     end
   end
 
@@ -127,6 +115,9 @@ class MySql::ResultSet < DB::ResultSet
 
   def read?(t : Slice(UInt8).class) : Slice(UInt8)?
     read_if_not_nil do |row_packet, length|
+      header = row_packet.read_byte!
+      length = row_packet.read_lenenc_int(header)
+
       ary = row_packet.read_byte_array(length.to_i32)
       Slice.new(ary.to_unsafe, ary.size)
     end

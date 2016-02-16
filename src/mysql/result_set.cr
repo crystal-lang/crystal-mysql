@@ -64,58 +64,49 @@ class MySql::ResultSet < DB::ResultSet
   end
 
   def column_type(index : Int32)
-    # Column types
-    # http://dev.mysql.com/doc/internals/en/com-query-response.html#column-type
-    case @columns[index].column_type
-    when 0x03; Int32
-    when 0x08; Int64
-    when 0xfc; 0xfb; Slice(UInt8)
-    when 0xf6; Float64 # NEWDECIMAL
-    else       String
-    end
+    @columns[index].column_type.db_any_type
   end
 
   def read_if_not_nil
     row_packet = @row_packet.not_nil!
 
     is_nil = @null_bitmap[@column_index + 2]
+    col = @column_index
     @column_index += 1
     if is_nil
       nil
     else
-      yield row_packet
+      yield row_packet, col
     end
   end
 
   def read?(t : String.class) : String?
-    read_if_not_nil do |row_packet|
-      row_packet.read_lenenc_string
+    read_if_not_nil do |row_packet, col|
+      @columns[col].column_type.read(row_packet) as String
     end
   end
 
   def read?(t : Int32.class) : Int32?
-    read_if_not_nil do |row_packet|
-      row_packet.read_bytes(Int32, IO::ByteFormat::LittleEndian)
+    read_if_not_nil do |row_packet, col|
+      @columns[col].column_type.read(row_packet) as Int32
     end
   end
 
   def read?(t : Int64.class) : Int64?
-    read_if_not_nil do |row_packet|
-      row_packet.read_bytes(Int64, IO::ByteFormat::LittleEndian)
+    read_if_not_nil do |row_packet, col|
+      @columns[col].column_type.read(row_packet) as Int64
     end
   end
 
   def read?(t : Float32.class) : Float32?
-    read_if_not_nil do |row_packet|
-      # NEWDECIMAL
-      row_packet.read_lenenc_string.to_f32
+    read_if_not_nil do |row_packet, col|
+      @columns[col].column_type.read(row_packet) as Float32
     end
   end
 
   def read?(t : Float64.class) : Float64?
-    read_if_not_nil do |row_packet|
-      # NEWDECIMAL
-      row_packet.read_lenenc_string.to_f
+    read_if_not_nil do |row_packet, col|
+      @columns[col].column_type.read(row_packet) as Float64
     end
   end
 

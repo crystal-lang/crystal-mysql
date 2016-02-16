@@ -41,6 +41,29 @@ class MySql::Statement < DB::Statement
       packet.write_bytes @statement_id.not_nil!, IO::ByteFormat::LittleEndian
       packet.write_byte 0x00u8 # flags: CURSOR_TYPE_NO_CURSOR
       packet.write_bytes 1i32, IO::ByteFormat::LittleEndian
+
+      params = @params.not_nil!
+      if params.size > 0
+        null_bitmap = BitArray.new(params.size + 7)
+        null_bitmap_slice = Slice.new(null_bitmap.bits as Pointer(UInt8), (params.size + 7) / 8)
+        packet.write null_bitmap_slice
+
+        packet.write_byte 0x01u8
+
+        # TODO raise if args.size and params.size does not match
+        # params types
+        args.each do |arg|
+          t = MySql::Type.type_for(arg.class)
+          packet.write_byte t.hex_value
+          packet.write_byte 0x80u8
+        end
+
+        # params values
+        args.each do |arg|
+          t = MySql::Type.type_for(arg.class)
+          t.write(packet, arg)
+        end
+      end
     end
 
     @connection.read_packet do |packet|

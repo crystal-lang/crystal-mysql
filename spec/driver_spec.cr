@@ -38,8 +38,8 @@ describe Driver do
     DB.driver_class("mysql").should eq(MySql::Driver)
   end
 
-  #  for value in [1, 1_i64, "hello", 1.5, 1.5_f32]
-  {% for value in [1, 1_i64, "hello", 1.5, 1.5_f32] %}
+  # "SELECT 1" returns a Int64. So this test are not to be used as is on all DB::Any
+  {% for value in [1_i64, "hello", 1.5] %}
     it "executes and select {{value.id}}" do
       with_db do |db|
         db.scalar("select #{sql({{value}})}").should eq({{value}})
@@ -49,7 +49,9 @@ describe Driver do
         end
       end
     end
+  {% end %}
 
+  {% for value in [1, 1_i64, "hello", 1.5, 1.5_f32] %}
     it "executes and select nil as type of {{value.id}}" do
       with_db do |db|
         db.scalar("select null").should be_nil
@@ -60,11 +62,11 @@ describe Driver do
       end
     end
 
-    # it "executes with bind {{value.id}}" do
-    #   with_db do |db|
-    #     db.scalar(%(select ?), {{value}}).should eq({{value}})
-    #   end
-    # end
+    it "executes with bind {{value.id}}" do
+      with_db do |db|
+        db.scalar(%(select ?), {{value}}).should eq({{value}})
+      end
+    end
 
     # it "executes with bind nil as typeof {{value.id}}" do
     #   with_db do |db|

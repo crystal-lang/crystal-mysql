@@ -1,4 +1,4 @@
-class MySql::Packet
+class MySql::ReadPacket
   include IO
 
   def initialize(@io)
@@ -9,7 +9,7 @@ class MySql::Packet
   end
 
   def to_s(io)
-    io << "MySql::Packet[length: " << io << @length << ", seq: " << @seq << ", remaining: " << @remaining << "]"
+    io << "MySql::IncomingPacket[length: " << io << @length << ", seq: " << @seq << ", remaining: " << @remaining << "]"
   end
 
   def read(slice : Slice(UInt8))

@@ -35,6 +35,10 @@ struct MySql::Type
     MySql::Type::String
   end
 
+  def self.type_for(t : ::Nil.class)
+    MySql::Type::Null
+  end
+
   def self.type_for(t)
     raise "not implemented"
   end

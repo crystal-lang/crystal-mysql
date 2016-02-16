@@ -51,6 +51,12 @@ describe Driver do
     end
   {% end %}
 
+  it "executes with bind nil" do
+    with_db do |db|
+      db.scalar("select ?", nil).should be_nil
+    end
+  end
+
   {% for value in [1, 1_i64, "hello", 1.5, 1.5_f32] %}
     it "executes and select nil as type of {{value.id}}" do
       with_db do |db|
@@ -68,17 +74,11 @@ describe Driver do
       end
     end
 
-    # it "executes with bind nil as typeof {{value.id}}" do
-    #   with_db do |db|
-    #     db.scalar("select ?", nil).should be_nil
-    #   end
-    # end
-
-    # it "executes with bind {{value.id}} as array" do
-    #   with_db do |db|
-    #     db.scalar(%(select ?), [{{value}}]).should eq({{value}})
-    #   end
-    # end
+    it "executes with bind {{value.id}} as array" do
+      with_db do |db|
+        db.scalar(%(select ?), [{{value}}]).should eq({{value}})
+      end
+    end
   {% end %}
 
   it "create and drop test database" do

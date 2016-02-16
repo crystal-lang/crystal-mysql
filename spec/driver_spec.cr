@@ -21,6 +21,12 @@ def sql(s)
   "#{s}"
 end
 
+def assert_single_read(rs, value_type, value)
+  rs.move_next.should be_true
+  rs.read(value_type).should eq(value)
+  rs.move_next.should be_false
+end
+
 def assert_single_read?(rs, value_type, value)
   rs.move_next.should be_true
   rs.read?(value_type).should eq(value)
@@ -33,26 +39,26 @@ describe Driver do
   end
 
   #  for value in [1, 1_i64, "hello", 1.5, 1.5_f32]
-  {% for value in [1, 1_i64, "hello"] %}
+  {% for value in [1, 1_i64, "hello", 1.5, 1.5_f32] %}
     it "executes and select {{value.id}}" do
       with_db do |db|
         db.scalar("select #{sql({{value}})}").should eq({{value}})
 
-        # db.query "select #{sql({{value}})}" do |rs|
-        #   assert_single_read rs, typeof({{value}}), {{value}}
-        # end
+        db.query "select #{sql({{value}})}" do |rs|
+          assert_single_read rs, typeof({{value}}), {{value}}
+        end
       end
     end
 
-    # it "executes and select nil as type of {{value.id}}" do
-    #   with_db do |db|
-    #     db.scalar("select null").should be_nil
+    it "executes and select nil as type of {{value.id}}" do
+      with_db do |db|
+        db.scalar("select null").should be_nil
 
-    #     db.query "select null" do |rs|
-    #       assert_single_read? rs, typeof({{value}}), nil
-    #     end
-    #   end
-    # end
+        db.query "select null" do |rs|
+          assert_single_read? rs, typeof({{value}}), nil
+        end
+      end
+    end
 
     # it "executes with bind {{value.id}}" do
     #   with_db do |db|

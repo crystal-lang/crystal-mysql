@@ -20,6 +20,7 @@ class MySql::ResultSet < DB::ResultSet
     @null_bitmap_slice = Slice.new(@null_bitmap.bits as Pointer(UInt8), (columns.size + 7 + 2) / 8)
 
     @header = 0
+    @eof_reached = false
   end
 
   def do_close
@@ -34,8 +35,9 @@ class MySql::ResultSet < DB::ResultSet
   end
 
   def move_next : Bool
-    # TODO skip all remaining cols in the current row
-    # TODO check if a row can be skipped without reading any column
+    return false if @eof_reached
+
+    # skip previous row_packet
     if row_packet = @row_packet
       row_packet.discard
     end
@@ -43,7 +45,11 @@ class MySql::ResultSet < DB::ResultSet
     @row_packet = row_packet = @conn.build_read_packet
 
     @header = row_packet.read_byte!
-    return false if @header == 0xfe # EOF
+    if @header == 0xfe # EOF
+      @eof_reached = true
+      return false
+    end
+
     @column_index = 0
     row_packet.read(@null_bitmap_slice)
     return true
@@ -64,6 +70,7 @@ class MySql::ResultSet < DB::ResultSet
     when 0x03; Int32
     when 0x08; Int64
     when 0xfc; 0xfb; Slice(UInt8)
+    when 0xf6; Float64 # NEWDECIMAL
     else       String
     end
   end
@@ -82,20 +89,13 @@ class MySql::ResultSet < DB::ResultSet
 
   def read?(t : String.class) : String?
     read_if_not_nil do |row_packet|
-      header = row_packet.read_byte!
-      length = row_packet.read_lenenc_int(header)
-
-      row_packet.read_string(length)
+      row_packet.read_lenenc_string
     end
   end
 
   def read?(t : Int32.class) : Int32?
     read_if_not_nil do |row_packet|
-      raise "not implemented"
-      header = row_packet.read_byte!
-      length = row_packet.read_lenenc_int(header)
-
-      row_packet.read_int_string(length)
+      row_packet.read_bytes(Int32, IO::ByteFormat::LittleEndian)
     end
   end
 
@@ -106,11 +106,17 @@ class MySql::ResultSet < DB::ResultSet
   end
 
   def read?(t : Float32.class) : Float32?
-    raise "not implemented"
+    read_if_not_nil do |row_packet|
+      # NEWDECIMAL
+      row_packet.read_lenenc_string.to_f32
+    end
   end
 
   def read?(t : Float64.class) : Float64?
-    raise "not implemented"
+    read_if_not_nil do |row_packet|
+      # NEWDECIMAL
+      row_packet.read_lenenc_string.to_f
+    end
   end
 
   def read?(t : Slice(UInt8).class) : Slice(UInt8)?

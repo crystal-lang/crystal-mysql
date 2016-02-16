@@ -63,6 +63,14 @@ struct MySql::Type
       def self.db_any_type
         {{db_any_type}}
       end
+
+      def self.write(packet, v : {{db_any_type}})
+        packet.write_bytes v, IO::ByteFormat::LittleEndian
+      end
+
+      def self.read(packet)
+        packet.read_bytes {{db_any_type}}, IO::ByteFormat::LittleEndian
+      end
       {% end %}
 
       {{yield}}
@@ -74,48 +82,16 @@ struct MySql::Type
   decl_type Decimal, 0x00u8
   decl_type Tiny, 0x01u8
   decl_type Short, 0x02u8
-  decl_type Long, 0x03u8, ::Int32 do
-    def self.write(packet, v : Int32)
-      packet.write_bytes v, IO::ByteFormat::LittleEndian
-    end
-
-    def self.read(packet)
-      packet.read_bytes Int32, IO::ByteFormat::LittleEndian
-    end
-  end
-  decl_type Float, 0x04u8, ::Float32 do
-    def self.write(packet, v : Float32)
-      packet.write_bytes v, IO::ByteFormat::LittleEndian
-    end
-
-    def self.read(packet)
-      packet.read_bytes Float32, IO::ByteFormat::LittleEndian
-    end
-  end
-  decl_type Double, 0x05u8, ::Float64 do
-    def self.write(packet, v : Float64)
-      packet.write_bytes v, IO::ByteFormat::LittleEndian
-    end
-
-    def self.read(packet)
-      packet.read_bytes Float64, IO::ByteFormat::LittleEndian
-    end
-  end
+  decl_type Long, 0x03u8, ::Int32
+  decl_type Float, 0x04u8, ::Float32
+  decl_type Double, 0x05u8, ::Float64
   decl_type Null, 0x06u8, ::Nil do
     def self.read(packet)
       nil
     end
   end
   decl_type Timestamp, 0x07u8
-  decl_type LongLong, 0x08u8, Int64 do
-    def self.write(packet, v : Int64)
-      packet.write_bytes v, IO::ByteFormat::LittleEndian
-    end
-
-    def self.read(packet)
-      packet.read_bytes Int64, IO::ByteFormat::LittleEndian
-    end
-  end
+  decl_type LongLong, 0x08u8, ::Int64
   decl_type Int24, 0x09u8
   decl_type Date, 0x0au8
   decl_type Time, 0x0bu8

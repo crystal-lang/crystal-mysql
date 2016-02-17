@@ -94,4 +94,25 @@ describe Driver do
       db.scalar("SELECT DATABASE()").should be_nil
     end
   end
+
+  it "gets column count" do
+    with_test_db do |db|
+      db.exec "create table person (name varchar(25), age integer)"
+
+      db.query "select * from person" do |rs|
+        rs.column_count.should eq(2)
+      end
+    end
+  end
+
+  it "gets column name" do
+    with_test_db do |db|
+      db.exec "create table person (name varchar(25), age integer)"
+
+      db.query "select * from person" do |rs|
+        rs.column_name(0).should eq("name")
+        rs.column_name(1).should eq("age")
+      end
+    end
+  end
 end

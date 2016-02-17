@@ -111,12 +111,8 @@ class MySql::ResultSet < DB::ResultSet
   end
 
   def read?(t : Slice(UInt8).class) : Slice(UInt8)?
-    read_if_not_nil do |row_packet, length|
-      header = row_packet.read_byte!
-      length = row_packet.read_lenenc_int(header)
-
-      ary = row_packet.read_byte_array(length.to_i32)
-      Slice.new(ary.to_unsafe, ary.size)
+    read_if_not_nil do |row_packet, col|
+      @columns[col].column_type.read(row_packet) as Slice(UInt8)
     end
   end
 end

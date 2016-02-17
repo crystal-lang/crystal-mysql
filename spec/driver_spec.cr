@@ -95,6 +95,28 @@ describe Driver do
     end
   end
 
+  it "executes and selects blob" do
+    with_test_db do |db|
+      db.exec "create table t1 (b1 BLOB)"
+      db.exec "insert into t1 (b1) values (X'415A617A')"
+      slice = db.scalar(%(select b1 from t1)) as Slice(UInt8)
+      slice.to_a.should eq([0x41, 0x5A, 0x61, 0x7A])
+    end
+  end
+
+  it "executes with bind blob" do
+    with_test_db do |db|
+      ary = UInt8[0x41, 0x5A, 0x61, 0x7A]
+      slice = Slice.new(ary.to_unsafe, ary.size)
+
+      db.exec "create table t1 (b1 BLOB)"
+      db.exec "insert into t1 (b1) values (?)", slice
+
+      slice = db.scalar(%(select b1 from t1)) as Slice(UInt8)
+      slice.to_a.should eq(ary)
+    end
+  end
+
   it "gets column count" do
     with_test_db do |db|
       db.exec "create table person (name varchar(25), age integer)"

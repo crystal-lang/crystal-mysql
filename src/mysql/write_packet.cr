@@ -34,4 +34,9 @@ class MySql::WritePacket
   def write_string(s : String)
     @io << s
   end
+
+  def write_blob(v : Slice(UInt8))
+    write_lenenc_int(v.size)
+    write(v)
+  end
 end

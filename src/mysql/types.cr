@@ -35,6 +35,10 @@ struct MySql::Type
     MySql::Type::String
   end
 
+  def self.type_for(t : ::Slice(UInt8).class)
+    MySql::Type::Blob
+  end
+
   def self.type_for(t : ::Nil.class)
     MySql::Type::Null
   end
@@ -113,7 +117,15 @@ struct MySql::Type
   decl_type TinyBlob, 0xf9u8
   decl_type MediumBlob, 0xfau8
   decl_type LongBlob, 0xfbu8
-  decl_type Blob, 0xfcu8
+  decl_type Blob, 0xfcu8, ::Slice(UInt8) do
+    def self.write(packet, v : ::Slice(UInt8))
+      packet.write_blob v
+    end
+
+    def self.read(packet)
+      packet.read_blob
+    end
+  end
   decl_type VarString, 0xfdu8, ::String do
     def self.write(packet, v : ::String)
       packet.write_lenenc_string v

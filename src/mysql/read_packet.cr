@@ -78,6 +78,11 @@ class MySql::ReadPacket
     Array(UInt8).new(length) { |i| read_byte! }
   end
 
+  def read_blob
+    ary = read_byte_array(read_lenenc_int.to_i32)
+    Slice.new(ary.to_unsafe, ary.size)
+  end
+
   def read_int_string(length)
     value = 0
     length.times do

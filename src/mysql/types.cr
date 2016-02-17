@@ -16,19 +16,19 @@ struct MySql::Type
   # Returns which MySql::Type should be used to encode values of type *t*.
   # Used when sending query params.
   def self.type_for(t : ::Int32.class)
-    Long
+    MySql::Type::Long
   end
 
   def self.type_for(t : ::Int64.class)
-    LongLong
+    MySql::Type::LongLong
   end
 
   def self.type_for(t : ::Float32.class)
-    Float
+    MySql::Type::Float
   end
 
   def self.type_for(t : ::Float64.class)
-    Double
+    MySql::Type::Double
   end
 
   def self.type_for(t : ::String.class)
@@ -135,7 +135,6 @@ struct MySql::Type
       packet.read_lenenc_string
     end
   end
-
   decl_type String, 0xfeu8, ::String do
     def self.write(packet, v : ::String)
       packet.write_lenenc_string v

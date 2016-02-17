@@ -80,39 +80,11 @@ class MySql::ResultSet < DB::ResultSet
     end
   end
 
-  def read?(t : String.class) : String?
-    read_if_not_nil do |row_packet, col|
-      @columns[col].column_type.read(row_packet) as String
+  {% for t in DB::TYPES %}
+    def read?(t : {{t}}.class) : {{t}}?
+      read_if_not_nil do |row_packet, col|
+        @columns[col].column_type.read(row_packet) as {{t}}
+      end
     end
-  end
-
-  def read?(t : Int32.class) : Int32?
-    read_if_not_nil do |row_packet, col|
-      @columns[col].column_type.read(row_packet) as Int32
-    end
-  end
-
-  def read?(t : Int64.class) : Int64?
-    read_if_not_nil do |row_packet, col|
-      @columns[col].column_type.read(row_packet) as Int64
-    end
-  end
-
-  def read?(t : Float32.class) : Float32?
-    read_if_not_nil do |row_packet, col|
-      @columns[col].column_type.read(row_packet) as Float32
-    end
-  end
-
-  def read?(t : Float64.class) : Float64?
-    read_if_not_nil do |row_packet, col|
-      @columns[col].column_type.read(row_packet) as Float64
-    end
-  end
-
-  def read?(t : Slice(UInt8).class) : Slice(UInt8)?
-    read_if_not_nil do |row_packet, col|
-      @columns[col].column_type.read(row_packet) as Slice(UInt8)
-    end
-  end
+  {% end %}
 end

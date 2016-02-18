@@ -13,6 +13,18 @@ def with_test_db(&block : DB::Database ->)
   end
 end
 
+def mysql_type_for(v)
+  case v
+  when String ; "varchar(25)"
+  when Int32  ; "int"
+  when Int64  ; "bigint"
+  when Float32; "float"
+  when Float64; "double"
+  else
+    raise "not implemented for #{typeof(v)}"
+  end
+end
+
 def sql(s : String)
   "#{s.inspect}"
 end
@@ -149,6 +161,76 @@ describe Driver do
         rs.column_type(3).should eq(Float32)
         rs.column_type(4).should eq(Float64)
         rs.column_type(5).should eq(Slice(UInt8))
+      end
+    end
+  end
+
+  it "gets last insert row id" do
+    with_test_db do |db|
+      db.exec "create table person (id int not null primary key auto_increment, name varchar(25), age int)"
+
+      db.exec %(insert into person (name, age) values ("foo", 10))
+
+      res = db.exec %(insert into person (name, age) values ("foo", 10))
+      res.last_insert_id.should eq(2)
+      res.rows_affected.should eq(1)
+    end
+  end
+
+  {% for value in [1, 1_i64, "hello", 1.5, 1.5_f32] %}
+    it "insert/get value {{value.id}} from table" do
+      with_test_db do |db|
+        db.exec "create table table1 (col1 #{mysql_type_for({{value}})})"
+        db.exec %(insert into table1 (col1) values (#{sql({{value}})}))
+        db.scalar("select col1 from table1").should eq({{value}})
+      end
+    end
+  {% end %}
+
+  it "gets many rows from table" do
+    with_test_db do |db|
+      db.exec "create table person (name varchar(25), age int)"
+      db.exec %(insert into person values ("foo", 10))
+      db.exec %(insert into person values ("bar", 20))
+      db.exec %(insert into person values ("baz", 30))
+
+      names = [] of String
+      ages = [] of Int32
+      db.query "select * from person" do |rs|
+        rs.each do
+          names << rs.read(String)
+          ages << rs.read(Int32)
+        end
+      end
+      names.should eq(["foo", "bar", "baz"])
+      ages.should eq([10, 20, 30])
+    end
+  end
+
+  it "ensures statements are closed" do
+    with_test_db do |db|
+      DB.open "mysql://root@localhost/crystal_mysql_test" do |db|
+        db.exec %(create table if not exists a (i int not null, str text not null);)
+        db.exec %(insert into a (i, str) values (23, "bai bai");)
+      end
+
+      2.times do |i|
+        DB.open "mysql://root@localhost/crystal_mysql_test" do |db|
+          begin
+            db.query("SELECT i, str FROM a WHERE i = ?", 23) do |rs|
+              rs.move_next
+              break
+            end
+          rescue e
+            fail("Expected no exception, but got \"#{e.message}\"")
+          end
+
+          begin
+            db.exec("UPDATE a SET i = ? WHERE i = ?", 23, 23)
+          rescue e
+            fail("Expected no exception, but got \"#{e.message}\"")
+          end
+        end
       end
     end
   end

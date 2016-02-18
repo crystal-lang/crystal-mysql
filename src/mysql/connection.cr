@@ -73,7 +73,7 @@ class MySql::Connection < DB::Connection
 
   # :nodoc:
   def write_packet(seq = 0)
-    content = MemoryIO.new # TODO refactor to a packet wrapper
+    content = MemoryIO.new
     yield WritePacket.new(content)
     bytesize = content.bytesize
 

@@ -137,4 +137,19 @@ describe Driver do
       end
     end
   end
+
+  it "gets column types" do
+    with_test_db do |db|
+      db.exec "create table table1 (aText varchar(25), anInteger int, anBinInteger bigint, aFloat float, aDouble double, aBlob blob)"
+
+      db.query "select * from table1" do |rs|
+        rs.column_type(0).should eq(String)
+        rs.column_type(1).should eq(Int32)
+        rs.column_type(2).should eq(Int64)
+        rs.column_type(3).should eq(Float32)
+        rs.column_type(4).should eq(Float64)
+        rs.column_type(5).should eq(Slice(UInt8))
+      end
+    end
+  end
 end

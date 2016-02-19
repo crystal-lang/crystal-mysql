@@ -10,8 +10,7 @@ class MySql::Statement < DB::Statement
 
     # http://dev.mysql.com/doc/internals/en/com-stmt-prepare-response.html
     @connection.read_packet do |packet|
-      status = packet.read_byte!
-      raise "stmt prepare response not ok" unless status == 0
+      @connection.raise_if_err_packet packet
 
       @statement_id = packet.read_int
       num_columns = packet.read_fixed_int(2)

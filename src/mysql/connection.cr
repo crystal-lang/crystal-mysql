@@ -8,50 +8,31 @@ class MySql::Connection < DB::Connection
     port = db.uri.port || 3306
     username = db.uri.user
     password = db.uri.password
-    # TODO use password
-
-    @socket = TCPSocket.new(host, port)
-    read_packet do |packet|
-      protocol_version = packet.read_byte!
-      version = packet.read_string
-      thread = packet.read_int
-      packet.read_byte_array(9)
-    end
-
-    write_packet(1) do |packet|
-      caps = 0x0200 | 0x8000 | 0x00200000
-      4.times do
-        packet.write_byte (caps & 0xff_u8).to_u8
-        caps = (caps >> 8)
-      end
-
-      28.times { packet.write_byte 0_u8 }
-      packet << username
-      2.times { packet.write_byte 0_u8 }
-    end
-
-    read_ok_or_err
 
     path = db.uri.path
     if path && path.size > 1
-      # http://dev.mysql.com/doc/internals/en/com-init-db.html
       initial_catalog = path[1..-1]
+    else
+      initial_catalog = nil
+    end
 
-      write_packet do |packet|
-        packet.write_byte 2_u8
-        packet << initial_catalog
-      end
+    @socket = TCPSocket.new(host, port)
+    handshake = read_packet(Protocol::HandshakeV10)
 
-      read_ok_or_err
+    write_packet(1) do |packet|
+      Protocol::HandshakeResponse41.new(username, password, initial_catalog, handshake.auth_plugin_data).write(packet)
+    end
+
+    read_ok_or_err do |packet, status|
+      raise "packet #{status} not implemented"
     end
   end
 
   # :nodoc:
   def read_ok_or_err
     read_packet do |packet|
-      if packet.read_byte == 255
-        4.times { packet.read_byte }
-        raise packet.read_string
+      raise_if_err_packet(packet) do |status|
+        yield packet, status
       end
     end
   end
@@ -64,6 +45,14 @@ class MySql::Connection < DB::Connection
     ensure
       packet.discard
     end
+  end
+
+  # :nodoc:
+  def read_packet(protocol_packet_type)
+    read_packet do |packet|
+      return protocol_packet_type.read(packet)
+    end
+    raise "unable to read packet"
   end
 
   # :nodoc:
@@ -94,6 +83,25 @@ class MySql::Connection < DB::Connection
   def handle_err_packet(packet)
     8.times { packet.read_byte! }
     raise packet.read_string
+  end
+
+  # :nodoc:
+  def raise_if_err_packet(packet)
+    raise_if_err_packet(packet) do |status|
+      raise "unexpected packet #{status}"
+    end
+  end
+
+  # :nodoc:
+  def raise_if_err_packet(packet)
+    status = packet.read_byte!
+    if status == 255
+      handle_err_packet packet
+    end
+
+    yield status if status != 0
+
+    status
   end
 
   # :nodoc:

@@ -117,9 +117,9 @@ class MySql::Connection < DB::Connection
         name = packet.read_lenenc_string
         org_name = packet.read_lenenc_string
         character_set = packet.read_lenenc_int
-        column_length = packet.read_fixed_int(2)
+        column_length = packet.read_fixed_int(2).to_i16
         packet.read_fixed_int(4) # Skip (length of fixed-length fields, always 0x0c)
-        column_type = packet.read_fixed_int(1)
+        column_type = packet.read_fixed_int(1).to_u8
 
         target << ColumnSpec.new(catalog, schema, table, org_table, name, org_name, character_set, column_length, column_type)
       end

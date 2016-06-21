@@ -1,7 +1,7 @@
 class MySql::WritePacket
   include IO
 
-  def initialize(@io)
+  def initialize(@io : IO)
   end
 
   def read(slice)

@@ -1,6 +1,11 @@
 class MySql::Statement < DB::Statement
-  def initialize(connection, @sql)
+  @statement_id : Int32
+
+  def initialize(connection, @sql : String)
     super(connection)
+    @statement_id = 0
+    params = @params = [] of ColumnSpec
+    columns = @columns = [] of ColumnSpec
 
     # http://dev.mysql.com/doc/internals/en/com-stmt-prepare.html#packet-COM_STMT_PREPARE
     @connection.write_packet do |packet|
@@ -18,23 +23,20 @@ class MySql::Statement < DB::Statement
       packet.read_byte! # reserved_1
       warning_count = packet.read_fixed_int(2)
 
-      params = @params = [] of ColumnSpec
       @connection.read_column_definitions(params, num_params)
-
-      columns = @columns = [] of ColumnSpec
       @connection.read_column_definitions(columns, num_columns)
     end
   end
 
-  protected def perform_query(args : Slice(DB::Any)) : DB::ResultSet
-    perform_exec_or_query(args) as DB::ResultSet
+  protected def perform_query(args : Enumerable) : MySql::ResultSet
+    perform_exec_or_query(args).as(DB::ResultSet)
   end
 
-  protected def perform_exec(args : Slice(DB::Any)) : DB::ExecResult
-    perform_exec_or_query(args) as DB::ExecResult
+  protected def perform_exec(args : Enumerable) : DB::ExecResult
+    perform_exec_or_query(args).as(DB::ExecResult)
   end
 
-  private def perform_exec_or_query(args : Slice(DB::Any))
+  private def perform_exec_or_query(args : Enumerable)
     @connection.write_packet do |packet|
       packet.write_byte 0x17u8
       packet.write_bytes @statement_id.not_nil!, IO::ByteFormat::LittleEndian
@@ -48,7 +50,7 @@ class MySql::Statement < DB::Statement
           next if arg
           null_bitmap[index] = true
         end
-        null_bitmap_slice = Slice.new(null_bitmap.bits as Pointer(UInt8), (params.size + 7) / 8)
+        null_bitmap_slice = Slice.new(null_bitmap.bits.as(Pointer(UInt8)), (params.size + 7) / 8)
         packet.write null_bitmap_slice
 
         packet.write_byte 0x01u8

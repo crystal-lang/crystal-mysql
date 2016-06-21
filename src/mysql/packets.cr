@@ -2,7 +2,7 @@ require "openssl/sha1"
 
 module MySql::Protocol
   struct HandshakeV10
-    getter auth_plugin_data
+    getter auth_plugin_data : Slice(UInt8)
 
     def initialize(@auth_plugin_data)
     end
@@ -59,7 +59,7 @@ module MySql::Protocol
     CLIENT_SESSION_TRACK                  = 0x00800000
     CLIENT_DEPRECATE_EOF                  = 0x01000000
 
-    def initialize(@username, @password, @initial_catalog, @auth_plugin_data)
+    def initialize(@username : String?, @password : String?, @initial_catalog : String?, @auth_plugin_data : Slice(UInt8))
     end
 
     def write(packet : MySql::WritePacket)

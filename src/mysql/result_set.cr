@@ -7,19 +7,23 @@ end
 class MySql::ResultSet < DB::ResultSet
   getter columns
 
+  @conn : MySql::Connection
+  @row_packet : MySql::ReadPacket?
+  @header : UInt8
+
   def initialize(statement, column_count)
     super(statement)
-    @conn = statement.connection
+    @conn = statement.connection.as(MySql::Connection)
 
     columns = @columns = [] of ColumnSpec
     @conn.read_column_definitions(columns, column_count)
 
     @column_index = 0 # next column index to return
 
-    @null_bitmap = BitArray.new(columns.size + 7 + 2)
-    @null_bitmap_slice = Slice.new(@null_bitmap.bits as Pointer(UInt8), (columns.size + 7 + 2) / 8)
+    @null_bitmap = BitArray.new(columns.size + 7 + 2) # TODO change to #to_slice, remove getter bits patch
+    @null_bitmap_slice = Slice(UInt8).new(@null_bitmap.bits.as(Pointer(UInt8)), (columns.size + 7 + 2) / 8)
 
-    @header = 0
+    @header = 0u8
     @eof_reached = false
   end
 

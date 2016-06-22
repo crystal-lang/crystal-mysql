@@ -45,7 +45,7 @@ abstract struct MySql::Type
   end
 
   def self.type_for(t)
-    raise "not implemented"
+    raise "MySql::Type does not support #{t} values"
   end
 
   def self.db_any_type

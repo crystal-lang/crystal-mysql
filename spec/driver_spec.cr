@@ -45,6 +45,9 @@ def assert_single_read?(rs, value_type, value)
   rs.move_next.should be_false
 end
 
+class NotSupportedType
+end
+
 describe Driver do
   it "should register mysql name" do
     DB.driver_class("mysql").should eq(MySql::Driver)
@@ -214,6 +217,21 @@ describe Driver do
       end
     end
   {% end %}
+
+  it "raises on unsupported param types" do
+    with_db do |db|
+      expect_raises Exception, "MySql::Type does not support NotSupportedType values" do
+        db.query "select ?", NotSupportedType.new
+      end
+      # TODO raising exception does not close the connection and pool is exhausted
+    end
+
+    with_db do |db|
+      expect_raises Exception, "MySql::Type does not support NotSupportedType values" do
+        db.exec "select ?", NotSupportedType.new
+      end
+    end
+  end
 
   it "gets many rows from table" do
     with_test_db do |db|

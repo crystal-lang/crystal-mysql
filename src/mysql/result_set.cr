@@ -6,7 +6,7 @@ class MySql::ResultSet < DB::ResultSet
   @conn : MySql::Connection
   @row_packet : MySql::ReadPacket?
   @header : UInt8
-  @null_bitmap_slice : Slice(UInt8)
+  @null_bitmap_slice : Bytes
 
   def initialize(statement, column_count)
     super(statement)

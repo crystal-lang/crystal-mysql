@@ -142,7 +142,7 @@ describe Driver do
     with_test_db do |db|
       db.exec "create table t1 (b1 BLOB)"
       db.exec "insert into t1 (b1) values (X'415A617A')"
-      slice = db.scalar(%(select b1 from t1)).as(Slice(UInt8))
+      slice = db.scalar(%(select b1 from t1)).as(Bytes)
       slice.to_a.should eq([0x41, 0x5A, 0x61, 0x7A])
     end
   end
@@ -150,12 +150,12 @@ describe Driver do
   it "executes with bind blob" do
     with_test_db do |db|
       ary = UInt8[0x41, 0x5A, 0x61, 0x7A]
-      slice = Slice.new(ary.to_unsafe, ary.size)
+      slice = Bytes.new(ary.to_unsafe, ary.size)
 
       db.exec "create table t1 (b1 BLOB)"
       db.exec "insert into t1 (b1) values (?)", slice
 
-      slice = db.scalar(%(select b1 from t1)).as(Slice(UInt8))
+      slice = db.scalar(%(select b1 from t1)).as(Bytes)
       slice.to_a.should eq(ary)
     end
   end
@@ -191,7 +191,7 @@ describe Driver do
         rs.column_type(2).should eq(Int64)
         rs.column_type(3).should eq(Float32)
         rs.column_type(4).should eq(Float64)
-        rs.column_type(5).should eq(Slice(UInt8))
+        rs.column_type(5).should eq(Bytes)
       end
     end
   end

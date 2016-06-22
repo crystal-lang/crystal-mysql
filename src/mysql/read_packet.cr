@@ -16,7 +16,7 @@ class MySql::ReadPacket
     io << "MySql::IncomingPacket[length: " << io << @length << ", seq: " << @seq << ", remaining: " << @remaining << "]"
   end
 
-  def read(slice : Slice(UInt8))
+  def read(slice : Bytes)
     return 0 unless @remaining > 0
     read_bytes = @io.read(slice)
     @remaining -= read_bytes
@@ -87,7 +87,7 @@ class MySql::ReadPacket
 
   def read_blob
     ary = read_byte_array(read_lenenc_int.to_i32)
-    Slice.new(ary.to_unsafe, ary.size)
+    Bytes.new(ary.to_unsafe, ary.size)
   end
 
   def read_int_string(length)

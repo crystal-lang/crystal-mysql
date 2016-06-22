@@ -35,7 +35,7 @@ class MySql::WritePacket
     @io << s
   end
 
-  def write_blob(v : Slice(UInt8))
+  def write_blob(v : Bytes)
     write_lenenc_int(v.size)
     write(v)
   end

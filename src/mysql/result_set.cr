@@ -1,15 +1,12 @@
 require "bit_array"
 
-struct BitArray
-  getter bits
-end
-
 class MySql::ResultSet < DB::ResultSet
   getter columns
 
   @conn : MySql::Connection
   @row_packet : MySql::ReadPacket?
   @header : UInt8
+  @null_bitmap_slice : Slice(UInt8)
 
   def initialize(statement, column_count)
     super(statement)
@@ -19,9 +16,8 @@ class MySql::ResultSet < DB::ResultSet
     @conn.read_column_definitions(columns, column_count)
 
     @column_index = 0 # next column index to return
-
-    @null_bitmap = BitArray.new(columns.size + 7 + 2) # TODO change to #to_slice, remove getter bits patch
-    @null_bitmap_slice = Slice(UInt8).new(@null_bitmap.bits.as(Pointer(UInt8)), (columns.size + 7 + 2) / 8)
+    @null_bitmap = BitArray.new(columns.size + 2)
+    @null_bitmap_slice = @null_bitmap.to_slice
 
     @header = 0u8
     @eof_reached = false
@@ -87,7 +83,7 @@ class MySql::ResultSet < DB::ResultSet
   {% for t in DB::TYPES %}
     def read?(t : {{t}}.class) : {{t}}?
       read_if_not_nil do |row_packet, col|
-        @columns[col].column_type.read(row_packet) as {{t}}
+        @columns[col].column_type.read(row_packet).as({{t}})
       end
     end
   {% end %}

@@ -45,12 +45,12 @@ class MySql::Statement < DB::Statement
 
       params = @params.not_nil!
       if params.size > 0
-        null_bitmap = BitArray.new(params.size + 7)
+        null_bitmap = BitArray.new(params.size)
         args.each_with_index do |arg, index|
           next if arg
           null_bitmap[index] = true
         end
-        null_bitmap_slice = Slice.new(null_bitmap.bits.as(Pointer(UInt8)), (params.size + 7) / 8)
+        null_bitmap_slice = null_bitmap.to_slice
         packet.write null_bitmap_slice
 
         packet.write_byte 0x01u8

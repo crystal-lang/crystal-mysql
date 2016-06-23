@@ -1,0 +1,10 @@
+name: mysql
+version: 0.1.0
+
+dependencies:
+  db:
+    github: bcardiff/crystal-db
+
+authors:
+  - Juan Wajnerman <jwajnerman@manas.com.ar>
+  - Brian J. Cardiff <bcardiff@manas.com.ar>

@@ -1,7 +1,11 @@
 class MySql::ReadPacket
   include IO
 
-  def initialize(@io)
+  @length : Int32
+  @remaining : Int32
+  @seq : UInt8
+
+  def initialize(@io : IO)
     header = uninitialized UInt8[4]
     io.read_fully(header.to_slice)
     @length = @remaining = header[0].to_i + (header[1].to_i << 8) + (header[2].to_i << 16)
@@ -12,7 +16,7 @@ class MySql::ReadPacket
     io << "MySql::IncomingPacket[length: " << io << @length << ", seq: " << @seq << ", remaining: " << @remaining << "]"
   end
 
-  def read(slice : Slice(UInt8))
+  def read(slice : Bytes)
     return 0 unless @remaining > 0
     read_bytes = @io.read(slice)
     @remaining -= read_bytes
@@ -37,7 +41,7 @@ class MySql::ReadPacket
 
   def read_string(length)
     String.build do |buffer|
-      length.times do
+      length.to_i64.times do
         buffer.write_byte read_byte!
       end
     end
@@ -52,6 +56,7 @@ class MySql::ReadPacket
     read_byte!.to_i + (read_byte!.to_i << 8) + (read_byte!.to_i << 16) + (read_byte!.to_i << 24)
   end
 
+  # TODO: should return different types of int depending on n value (note: update Connection#read_column_definitions to remote to_i16/to_i8)
   def read_fixed_int(n)
     int = 0
     n.times do |i|
@@ -61,17 +66,19 @@ class MySql::ReadPacket
   end
 
   def read_lenenc_int(h = read_byte!)
-    if h < 251
-      h.to_i
-    elsif h == 0xfc
-      read_byte!.to_i + (read_byte!.to_i << 8)
-    elsif h == 0xfd
-      read_byte!.to_i + (read_byte!.to_i << 8) + (read_byte!.to_i << 16)
-    elsif h == 0xfe
-      read_bytes(Int64, IO::ByteFormat::LittleEndian)
-    else
-      raise "Unexpected int length"
-    end
+    res = if h < 251
+            h.to_i
+          elsif h == 0xfc
+            read_byte!.to_i + (read_byte!.to_i << 8)
+          elsif h == 0xfd
+            read_byte!.to_i + (read_byte!.to_i << 8) + (read_byte!.to_i << 16)
+          elsif h == 0xfe
+            read_bytes(Int64, IO::ByteFormat::LittleEndian)
+          else
+            raise "Unexpected int length"
+          end
+
+    res.to_i64
   end
 
   def read_byte_array(length)
@@ -80,7 +87,7 @@ class MySql::ReadPacket
 
   def read_blob
     ary = read_byte_array(read_lenenc_int.to_i32)
-    Slice.new(ary.to_unsafe, ary.size)
+    Bytes.new(ary.to_unsafe, ary.size)
   end
 
   def read_int_string(length)

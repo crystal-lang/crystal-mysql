@@ -1,9 +1,10 @@
 # :nodoc:
-struct MySql::Type
+abstract struct MySql::Type
   # Column types
   # http://dev.mysql.com/doc/internals/en/com-query-response.html#column-type
 
   @@types_by_code = Hash(UInt8, MySql::Type.class).new
+  @@hex_value : UInt8
 
   def self.hex_value
     @@hex_value
@@ -35,7 +36,7 @@ struct MySql::Type
     MySql::Type::String
   end
 
-  def self.type_for(t : ::Slice(UInt8).class)
+  def self.type_for(t : ::Bytes.class)
     MySql::Type::Blob
   end
 
@@ -44,7 +45,7 @@ struct MySql::Type
   end
 
   def self.type_for(t)
-    raise "not implemented"
+    raise "MySql::Type does not support #{t} values"
   end
 
   def self.db_any_type
@@ -117,8 +118,8 @@ struct MySql::Type
   decl_type TinyBlob, 0xf9u8
   decl_type MediumBlob, 0xfau8
   decl_type LongBlob, 0xfbu8
-  decl_type Blob, 0xfcu8, ::Slice(UInt8) do
-    def self.write(packet, v : ::Slice(UInt8))
+  decl_type Blob, 0xfcu8, ::Bytes do
+    def self.write(packet, v : ::Bytes)
       packet.write_blob v
     end
 

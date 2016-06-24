@@ -8,3 +8,5 @@ dependencies:
 authors:
   - Juan Wajnerman <jwajnerman@manas.com.ar>
   - Brian J. Cardiff <bcardiff@manas.com.ar>
+
+license: MIT

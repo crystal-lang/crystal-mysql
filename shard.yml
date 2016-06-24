@@ -3,7 +3,8 @@ version: 0.1.0
 
 dependencies:
   db:
-    github: bcardiff/crystal-db
+    github: crystal-lang/crystal-db
+    version: ~> 0.1.0
 
 authors:
   - Juan Wajnerman <jwajnerman@manas.com.ar>

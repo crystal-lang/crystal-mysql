@@ -39,12 +39,6 @@ def assert_single_read(rs, value_type, value)
   rs.move_next.should be_false
 end
 
-def assert_single_read?(rs, value_type, value)
-  rs.move_next.should be_true
-  rs.read?(value_type).should eq(value)
-  rs.move_next.should be_false
-end
-
 class NotSupportedType
 end
 
@@ -106,7 +100,7 @@ describe Driver do
         db.scalar("select null").should be_nil
 
         db.query "select null" do |rs|
-          assert_single_read? rs, typeof({{value}}), nil
+          assert_single_read rs, typeof({{value}} || nil), nil
         end
       end
     end
@@ -177,21 +171,6 @@ describe Driver do
       db.query "select * from person" do |rs|
         rs.column_name(0).should eq("name")
         rs.column_name(1).should eq("age")
-      end
-    end
-  end
-
-  it "gets column types" do
-    with_test_db do |db|
-      db.exec "create table table1 (aText varchar(25), anInteger int, anBinInteger bigint, aFloat float, aDouble double, aBlob blob)"
-
-      db.query "select * from table1" do |rs|
-        rs.column_type(0).should eq(String)
-        rs.column_type(1).should eq(Int32)
-        rs.column_type(2).should eq(Int64)
-        rs.column_type(3).should eq(Float32)
-        rs.column_type(4).should eq(Float64)
-        rs.column_type(5).should eq(Bytes)
       end
     end
   end

@@ -63,11 +63,7 @@ class MySql::ResultSet < DB::ResultSet
     @columns[index].name
   end
 
-  def column_type(index : Int32)
-    @columns[index].column_type.db_any_type
-  end
-
-  def read_if_not_nil
+  def read
     row_packet = @row_packet.not_nil!
 
     is_nil = @null_bitmap[@column_index + 2]
@@ -76,15 +72,7 @@ class MySql::ResultSet < DB::ResultSet
     if is_nil
       nil
     else
-      yield row_packet, col
+      @columns[col].column_type.read(row_packet)
     end
   end
-
-  {% for t in DB::TYPES %}
-    def read?(t : {{t}}.class) : {{t}}?
-      read_if_not_nil do |row_packet, col|
-        @columns[col].column_type.read(row_packet).as({{t}})
-      end
-    end
-  {% end %}
 end

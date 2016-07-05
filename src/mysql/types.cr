@@ -4,7 +4,7 @@ abstract struct MySql::Type
   # http://dev.mysql.com/doc/internals/en/com-query-response.html#column-type
 
   @@types_by_code = Hash(UInt8, MySql::Type.class).new
-  @@hex_value : UInt8
+  @@hex_value : UInt8 = 0x00u8
 
   def self.hex_value
     @@hex_value

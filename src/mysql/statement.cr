@@ -7,15 +7,17 @@ class MySql::Statement < DB::Statement
     params = @params = [] of ColumnSpec
     columns = @columns = [] of ColumnSpec
 
+    conn = self.conn
+
     # http://dev.mysql.com/doc/internals/en/com-stmt-prepare.html#packet-COM_STMT_PREPARE
-    @connection.write_packet do |packet|
+    conn.write_packet do |packet|
       packet.write_byte 0x16u8
       packet << @sql
     end
 
     # http://dev.mysql.com/doc/internals/en/com-stmt-prepare-response.html
-    @connection.read_packet do |packet|
-      @connection.raise_if_err_packet packet
+    conn.read_packet do |packet|
+      conn.raise_if_err_packet packet
 
       @statement_id = packet.read_int
       num_columns = packet.read_fixed_int(2)
@@ -23,8 +25,8 @@ class MySql::Statement < DB::Statement
       packet.read_byte! # reserved_1
       warning_count = packet.read_fixed_int(2)
 
-      @connection.read_column_definitions(params, num_params)
-      @connection.read_column_definitions(columns, num_columns)
+      conn.read_column_definitions(params, num_params)
+      conn.read_column_definitions(columns, num_columns)
     end
   end
 
@@ -37,7 +39,8 @@ class MySql::Statement < DB::Statement
   end
 
   private def perform_exec_or_query(args : Enumerable)
-    @connection.write_packet do |packet|
+    conn = self.conn
+    conn.write_packet do |packet|
       packet.write_byte 0x17u8
       packet.write_bytes @statement_id.not_nil!, IO::ByteFormat::LittleEndian
       packet.write_byte 0x00u8 # flags: CURSOR_TYPE_NO_CURSOR
@@ -72,10 +75,10 @@ class MySql::Statement < DB::Statement
       end
     end
 
-    @connection.read_packet do |packet|
+    conn.read_packet do |packet|
       case header = packet.read_byte.not_nil!
       when 255 # err packet
-        @connection.handle_err_packet(packet)
+        conn.handle_err_packet(packet)
       when 0 # ok packet
         affected_rows = packet.read_lenenc_int
         last_insert_id = packet.read_lenenc_int
@@ -84,5 +87,9 @@ class MySql::Statement < DB::Statement
         MySql::ResultSet.new(self, packet.read_lenenc_int(header))
       end
     end
+  end
+
+  protected def conn
+    @connection.as(Connection)
   end
 end

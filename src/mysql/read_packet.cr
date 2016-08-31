@@ -13,7 +13,7 @@ class MySql::ReadPacket
   end
 
   def to_s(io)
-    io << "MySql::IncomingPacket[length: " << io << @length << ", seq: " << @seq << ", remaining: " << @remaining << "]"
+    io << "MySql::IncomingPacket[length: " << @length << ", seq: " << @seq << ", remaining: " << @remaining << "]"
   end
 
   def read(slice : Bytes)

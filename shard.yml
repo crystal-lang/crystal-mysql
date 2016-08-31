@@ -4,7 +4,7 @@ version: 0.1.2
 dependencies:
   db:
     github: crystal-lang/crystal-db
-    branch: master
+    branch: feature/pool
 
 authors:
   - Juan Wajnerman <jwajnerman@manas.com.ar>

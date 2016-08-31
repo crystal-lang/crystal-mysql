@@ -104,7 +104,17 @@ abstract struct MySql::Type
   decl_type Int24, 0x09u8
   decl_type Date, 0x0au8
   decl_type Time, 0x0bu8
-  decl_type DateTime, 0x0cu8
+  decl_type DateTime, 0x0cu8, ::Bytes do
+    def self.read(packet)
+      datetime = packet.read_blob
+      p typeof(datetime)
+      if datetime.size > 2
+        year = datetime[0].to_i32 + datetime[1].to_i32 * 256
+        month,date,hour,minute,second = datetime[2,5]
+        return ::Time.new(year,month.to_i32,date.to_i32,hour.to_i32,minute.to_i32,second.to_i32)
+      end
+    end
+  end
   decl_type Year, 0x0du8
   decl_type VarChar, 0x0fu8
   decl_type Bit, 0x10u8

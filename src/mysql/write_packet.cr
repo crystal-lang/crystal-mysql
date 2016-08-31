@@ -1,7 +1,7 @@
 class MySql::WritePacket
   include IO
 
-  def initialize(@io : IO)
+  def initialize(@io : IO, @connection : Connection)
   end
 
   def read(slice)
@@ -10,6 +10,8 @@ class MySql::WritePacket
 
   def write(slice)
     @io.write(slice)
+  rescue IO::EOFError
+    raise DB::ConnectionLost.new(@connection)
   end
 
   def write_lenenc_string(s : String)
@@ -36,6 +38,8 @@ class MySql::WritePacket
 
   def write_string(s : String)
     @io << s
+  rescue IO::EOFError
+    raise DB::ConnectionLost.new(@connection)
   end
 
   def write_blob(v : Bytes)

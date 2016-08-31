@@ -5,11 +5,13 @@ class MySql::ReadPacket
   @remaining : Int32
   @seq : UInt8
 
-  def initialize(@io : IO)
+  def initialize(@io : IO, @connection : Connection)
     header = uninitialized UInt8[4]
     io.read_fully(header.to_slice)
     @length = @remaining = header[0].to_i + (header[1].to_i << 8) + (header[2].to_i << 16)
     @seq = header[3]
+  rescue IO::EOFError
+    raise DB::ConnectionLost.new(@connection)
   end
 
   def to_s(io)
@@ -21,6 +23,8 @@ class MySql::ReadPacket
     read_bytes = @io.read(slice)
     @remaining -= read_bytes
     read_bytes
+  rescue IO::EOFError
+    raise DB::ConnectionLost.new(@connection)
   end
 
   def write(slice)

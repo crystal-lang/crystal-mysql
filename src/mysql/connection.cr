@@ -57,13 +57,13 @@ class MySql::Connection < DB::Connection
 
   # :nodoc:
   def build_read_packet
-    ReadPacket.new(@socket)
+    ReadPacket.new(@socket, self)
   end
 
   # :nodoc:
   def write_packet(seq = 0)
     content = MemoryIO.new
-    yield WritePacket.new(content)
+    yield WritePacket.new(content, self)
     bytesize = content.bytesize
 
     packet = MemoryIO.new

@@ -104,7 +104,26 @@ abstract struct MySql::Type
   decl_type Int24, 0x09u8
   decl_type Date, 0x0au8
   decl_type Time, 0x0bu8
-  decl_type DateTime, 0x0cu8
+  decl_type DateTime, 0x0cu8, ::Bytes do
+    def self.write(packet, v : ::Bytes)
+      packet.write_blob v
+    end
+
+    def self.read(packet)
+      pkt = packet.read_byte!
+      return ::Time.new(0) if pkt < 1      
+      year   = packet.read_fixed_int(2).to_i32
+      month  = packet.read_byte!.to_i32
+      day    = packet.read_byte!.to_i32
+      return ::Time.new(year,month,day) if pkt < 6
+      hour   = packet.read_byte!.to_i32
+      minute = packet.read_byte!.to_i32
+      second = packet.read_byte!.to_i32
+      return ::Time.new(year,month,day,hour,minute,second) if pkt < 8
+      ms     = packet.read_int.to_i32 / 1000 #returns microseconds, time only supports milliseconds
+      return ::Time.new(year, month, day, hour, minute, second, ms)
+    end
+  end
   decl_type Year, 0x0du8
   decl_type VarChar, 0x0fu8
   decl_type Bit, 0x10u8

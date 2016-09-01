@@ -186,6 +186,7 @@ describe Driver do
       res.rows_affected.should eq(1)
     end
   end
+  
 
   {% for value in [1, 1_i64, "hello", 1.5, 1.5_f32] %}
     it "insert/get value {{value.id}} from table" do
@@ -196,6 +197,38 @@ describe Driver do
       end
     end
   {% end %}
+  
+  it "get datetime ymd from table" do
+    time1 = Time.new(2016, 2, 15)
+    with_test_db do |db|
+      db.exec "create table table1 (col1 datetime)" 
+      db.exec "insert into table1 (col1) values('2016-2-15')"
+      db.scalar("select col1 from table1").should eq(time1)
+    end
+  end
+
+  it "get datetime ymd hms from table" do
+    time1 = Time.new(2016, 2, 15,10,15,30)
+    with_test_db do |db|
+      db.exec "create table table1 (col1 datetime)" 
+      db.exec "insert into table1 (col1) values('2016-2-15 10:15:30')"
+      db.scalar("select col1 from table1").should eq(time1)
+    end
+  end
+
+  it "get datetime ymd hms ms from table" do
+    time1 = Time.new(2016, 2, 15,10,15,30,999)
+    with_test_db do |db|
+      db.exec "create table table1 (col1 datetime(3))" 
+      db.exec "insert into table1 (col1) values('2016-2-15 10:15:30.999')"
+      db.query("select col1 from table1") do |rs|
+        rs.each do
+          rs.read(Time).to_s("%Y-%m-%d %H:%M:%S.%L").should eq(time1.to_s("%Y-%m-%d %H:%M:%S.%L"))
+        end
+      end 
+    end
+  end
+
 
   it "raises on unsupported param types" do
     with_db do |db|

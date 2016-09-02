@@ -205,6 +205,15 @@ describe Driver do
     end
   end
 
+  it "get datetime null from table" do
+    with_test_db do |db|
+      db.exec "create table table1 (col1 datetime)" 
+      db.exec "insert into table1 (col1) values(null)"
+      db.scalar("select col1 from table1").should eq(nil)
+    end
+  end
+
+
   it "get/set datetime ymd from table" do
     time1 = Time.new(2016, 2, 15)
     with_test_db do |db|

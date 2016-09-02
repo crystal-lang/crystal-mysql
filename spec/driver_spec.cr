@@ -198,11 +198,20 @@ describe Driver do
     end
   {% end %}
   
+  it "get datetime zero from table" do
+    time1 = Time.new(0)
+    with_test_db do |db|
+      db.exec "create table table1 (col1 datetime)" 
+      db.exec "insert into table1 (col1) values('0000-00-00')"
+      db.scalar("select col1 from table1").should eq(time1)
+    end
+  end
+
   it "get datetime ymd from table" do
     time1 = Time.new(2016, 2, 15)
     with_test_db do |db|
       db.exec "create table table1 (col1 datetime)" 
-      db.exec "insert into table1 (col1) values('2016-2-15')"
+      db.exec "insert into table1 (col1) values('2016-2-15')" #,time1
       db.scalar("select col1 from table1").should eq(time1)
     end
   end

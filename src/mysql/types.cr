@@ -40,6 +40,10 @@ abstract struct MySql::Type
     MySql::Type::Blob
   end
 
+  def self.type_for(t : ::Time.class)
+    MySql::Type::DateTime
+  end
+
   def self.type_for(t : ::Nil.class)
     MySql::Type::Null
   end
@@ -107,6 +111,10 @@ abstract struct MySql::Type
   decl_type DateTime, 0x0cu8, ::Bytes do
     def self.write(packet, v : ::Bytes)
       packet.write_blob v
+    end
+
+    def self.write(packet, v : ::Time)
+      packet.write_blob UInt8.slice(v.year.to_i16, v.year.to_i16/256, v.month.to_i8, v.day.to_i8, v.hour.to_i8, v.minute.to_i8, v.second.to_i8, v.millisecond.to_i32)
     end
 
     def self.read(packet)

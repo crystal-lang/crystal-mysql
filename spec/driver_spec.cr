@@ -224,7 +224,7 @@ describe Driver do
   end
 
   it "get/set datetime ymd hms ms from table" do
-    time1 = Time.new(2016, 2, 15,10,15,30,999)
+    time1 = Time.new(2016, 2, 15,10,15,30,543)
     with_test_db do |db|
       db.exec "create table table1 (col1 datetime(3))" 
       db.exec "insert into table1 (col1) values(?)",time1

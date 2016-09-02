@@ -178,9 +178,7 @@ describe Driver do
   it "gets last insert row id" do
     with_test_db do |db|
       db.exec "create table person (id int not null primary key auto_increment, name varchar(25), age int)"
-
       db.exec %(insert into person (name, age) values ("foo", 10))
-
       res = db.exec %(insert into person (name, age) values ("foo", 10))
       res.last_insert_id.should eq(2)
       res.rows_affected.should eq(1)
@@ -207,29 +205,29 @@ describe Driver do
     end
   end
 
-  it "get datetime ymd from table" do
+  it "get/set datetime ymd from table" do
     time1 = Time.new(2016, 2, 15)
     with_test_db do |db|
       db.exec "create table table1 (col1 datetime)" 
-      db.exec "insert into table1 (col1) values('2016-2-15')" #,time1
+      db.exec "insert into table1 (col1) values(?)",time1
       db.scalar("select col1 from table1").should eq(time1)
     end
   end
 
-  it "get datetime ymd hms from table" do
+  it "get/set datetime ymd hms from table" do
     time1 = Time.new(2016, 2, 15,10,15,30)
     with_test_db do |db|
       db.exec "create table table1 (col1 datetime)" 
-      db.exec "insert into table1 (col1) values('2016-2-15 10:15:30')"
+      db.exec "insert into table1 (col1) values(?)",time1
       db.scalar("select col1 from table1").should eq(time1)
     end
   end
 
-  it "get datetime ymd hms ms from table" do
+  it "get/set datetime ymd hms ms from table" do
     time1 = Time.new(2016, 2, 15,10,15,30,999)
     with_test_db do |db|
       db.exec "create table table1 (col1 datetime(3))" 
-      db.exec "insert into table1 (col1) values('2016-2-15 10:15:30.999')"
+      db.exec "insert into table1 (col1) values(?)",time1
       db.query("select col1 from table1") do |rs|
         rs.each do
           rs.read(Time).to_s("%Y-%m-%d %H:%M:%S.%L").should eq(time1.to_s("%Y-%m-%d %H:%M:%S.%L"))

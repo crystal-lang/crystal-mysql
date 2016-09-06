@@ -1,6 +1,14 @@
 language: crystal
 services:
-  - mysql
+  - docker
+env:
+  - MYSQL_DOCKER_IMAGE=mysql:5.7
+  - MYSQL_DOCKER_IMAGE=mysql:5.6
+before_install:
+  - docker run -e MYSQL_ALLOW_EMPTY_PASSWORD=yes -p 3306:3306 -d ${MYSQL_DOCKER_IMAGE}
+  - docker ps -a # log docker image
+  - while ! echo exit | nc localhost 3306; do sleep 5; done # wait mysql to start accepting connections
+  - sleep 10
 script:
   - crystal spec
   - crystal tool format --check

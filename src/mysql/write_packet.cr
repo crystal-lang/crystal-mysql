@@ -20,14 +20,17 @@ class MySql::WritePacket
   def write_lenenc_int(v)
     if v < 251
       write_bytes(v.to_i8, IO::ByteFormat::LittleEndian)
-      # elsif v == 0xfc
-      #   read_byte!.to_i + (read_byte!.to_i << 8)
-      # elsif v == 0xfd
-      #   read_byte!.to_i + (read_byte!.to_i << 8) + (read_byte!.to_i << 16)
-      # elsif v == 0xfe
-      #   read_bytes(Int64, IO::ByteFormat::LittleEndian)
+    elsif v < 65_536
+      write_bytes(0xfc_u8, IO::ByteFormat::LittleEndian)
+      write_bytes(v.to_u16, IO::ByteFormat::LittleEndian)
+    elsif v < 16_777_216
+      write_bytes(0xfd_u8, IO::ByteFormat::LittleEndian)
+      write_bytes((v & 0x000000FF).to_u8)
+      write_bytes(((v & 0x0000FF00) >> 8).to_u8)
+      write_bytes(((v & 0x00FF0000) >> 16).to_u8)
     else
-      raise "Unexpected int length"
+      write_bytes(0xfe_u8, IO::ByteFormat::LittleEndian)
+      write_bytes(v.to_u64, IO::ByteFormat::LittleEndian)
     end
   end
 

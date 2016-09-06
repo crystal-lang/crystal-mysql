@@ -50,24 +50,24 @@ describe Driver do
   it "should connect with credentials" do
     with_db do |db|
       db.scalar("SELECT DATABASE()").should be_nil
-      db.scalar("SELECT CURRENT_USER()").should eq("root@localhost")
+      db.scalar("SELECT CURRENT_USER()").should match(/^root@(localhost|%)$/)
 
       # ensure user is deleted
-      db.exec "GRANT USAGE ON *.* TO crystal_test@localhost IDENTIFIED BY 'secret'"
-      db.exec "DROP USER crystal_test@localhost"
+      db.exec "GRANT USAGE ON *.* TO crystal_test IDENTIFIED BY 'secret'"
+      db.exec "DROP USER crystal_test"
       db.exec "DROP DATABASE IF EXISTS crystal_mysql_test"
       db.exec "FLUSH PRIVILEGES"
 
       # create test db with user
       db.exec "CREATE DATABASE crystal_mysql_test"
-      db.exec "CREATE USER crystal_test@localhost IDENTIFIED BY 'secret'"
-      db.exec "GRANT ALL PRIVILEGES ON crystal_mysql_test.* TO crystal_test@localhost"
+      db.exec "CREATE USER crystal_test IDENTIFIED BY 'secret'"
+      db.exec "GRANT ALL PRIVILEGES ON crystal_mysql_test.* TO crystal_test"
       db.exec "FLUSH PRIVILEGES"
     end
 
     DB.open "mysql://crystal_test:secret@localhost/crystal_mysql_test" do |db|
       db.scalar("SELECT DATABASE()").should eq("crystal_mysql_test")
-      db.scalar("SELECT CURRENT_USER()").should eq("crystal_test@localhost")
+      db.scalar("SELECT CURRENT_USER()").should match(/^crystal_test@(localhost|%)$/)
     end
 
     with_db do |db|

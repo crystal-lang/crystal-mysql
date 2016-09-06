@@ -200,15 +200,11 @@ describe Driver do
   it "get datetime zero from table" do
     time1 = Time.new(0)
     with_test_db do |db|
-      mode = db.scalar "SELECT @@sql_mode"
-      if mode.is_a?(String)
-        if !mode.match(/NO_ZERO_DATE/)
-          db.exec "create table table1 (col1 datetime)"
-          db.exec "insert into table1 (col1) values('0000-00-00 00:00:00')"
-          db.scalar("select col1 from table1").should eq(time1)
-        else
-          p " - NO_ZERO_IN_DATE enabled"
-        end
+      mode = db.scalar("SELECT @@sql_mode")
+      if mode.is_a?(String) && !mode.match(/NO_ZERO_DATE/)
+        db.exec "create table table1 (col1 datetime)"
+        db.exec "insert into table1 (col1) values('0000-00-00 00:00:00')"
+        db.scalar("select col1 from table1").should eq(time1)
       end
     end
   end

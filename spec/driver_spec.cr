@@ -178,14 +178,13 @@ describe Driver do
   it "gets last insert row id" do
     with_test_db do |db|
       db.exec "create table person (id int not null primary key auto_increment, name varchar(25), age int)"
-
       db.exec %(insert into person (name, age) values ("foo", 10))
-
       res = db.exec %(insert into person (name, age) values ("foo", 10))
       res.last_insert_id.should eq(2)
       res.rows_affected.should eq(1)
     end
   end
+  
 
   {% for value in [1, 1_i64, "hello", 1.5, 1.5_f32] %}
     it "insert/get value {{value.id}} from table" do
@@ -196,6 +195,71 @@ describe Driver do
       end
     end
   {% end %}
+  
+  # zero dates http://dev.mysql.com/doc/refman/5.7/en/datetime.html - work on some mysql not others, 
+  # NO_ZERO_IN_DATE enabled as part of strict mode in MySQL 5.7.8. - http://dev.mysql.com/doc/refman/5.7/en/sql-mode.html#sql-mode-changes
+  it "get datetime zero from table" do
+    time1 = Time.new(0) 
+    with_test_db do |db|
+      mode = db.scalar "SELECT @@sql_mode"
+      if mode.is_a?(String)
+        if !mode.match(/NO_ZERO_DATE/)
+          db.exec "create table table1 (col1 datetime)"
+          db.exec "insert into table1 (col1) values('0000-00-00 00:00:00')"
+          db.scalar("select col1 from table1").should eq(time1)
+        else
+          p " - NO_ZERO_IN_DATE enabled"
+        end
+      end
+    end
+  end
+
+  it "get datetime null from table" do
+    with_test_db do |db|
+      db.exec "create table table1 (col1 datetime)" 
+      db.exec "insert into table1 (col1) values(null)"
+      db.scalar("select col1 from table1").should eq(nil)
+    end
+  end
+
+
+  it "get/set datetime ymd from table" do
+    time1 = Time.new(2016, 2, 15)
+    with_test_db do |db|
+      db.exec "create table table1 (col1 datetime)" 
+      db.exec "insert into table1 (col1) values(?)",time1
+      db.scalar("select col1 from table1").should eq(time1)
+    end
+  end
+
+  it "get/set datetime ymd hms from table" do
+    time1 = Time.new(2016, 2, 15,10,15,30)
+    with_test_db do |db|
+      db.exec "create table table1 (col1 datetime)" 
+      db.exec "insert into table1 (col1) values(?)",time1
+      db.scalar("select col1 from table1").should eq(time1)
+    end
+  end
+
+  it "get/set datetime ymd hms ms from table" do
+    time1 = Time.new(2016, 2, 15, 10, 15, 30, 543)
+    with_test_db do |db|
+      dbversion = db.scalar("SELECT VERSION();") #needs to check version, microsecond support >= 5.7
+      if dbversion.is_a?(String)
+        version = dbversion.match(/([0-9]+)\.([0-9]+)\.([0-9]+)/)
+        if !version.nil? && version[1].to_i >= 5 && version[2].to_i >=7
+          db.exec "create table table1 (col1 datetime(3))"
+          db.exec "insert into table1 (col1) values(?)", time1
+          db.query("select col1 from table1") do |rs|
+            rs.each do
+              rs.read(Time).to_s("%Y-%m-%d %H:%M:%S.%L").should eq(time1.to_s("%Y-%m-%d %H:%M:%S.%L"))
+            end
+          end
+        end
+      end
+    end
+  end
+
 
   it "raises on unsupported param types" do
     with_db do |db|

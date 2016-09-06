@@ -40,6 +40,10 @@ abstract struct MySql::Type
     MySql::Type::Blob
   end
 
+  def self.type_for(t : ::Time.class)
+    MySql::Type::DateTime
+  end
+
   def self.type_for(t : ::Nil.class)
     MySql::Type::Null
   end
@@ -104,7 +108,27 @@ abstract struct MySql::Type
   decl_type Int24, 0x09u8
   decl_type Date, 0x0au8
   decl_type Time, 0x0bu8
-  decl_type DateTime, 0x0cu8
+  decl_type DateTime, 0x0cu8, ::Time do
+
+    def self.write(packet, v : ::Time)
+      packet.write_blob UInt8.slice(v.year.to_i16, v.year.to_i16/256, v.month.to_i8, v.day.to_i8, v.hour.to_i8, v.minute.to_i8, v.second.to_i8, v.millisecond*1000,v.millisecond*1000/256,v.millisecond*1000/65536)
+    end
+
+    def self.read(packet)
+      pkt = packet.read_byte!
+      return ::Time.new(0) if pkt < 1      
+      year   = packet.read_fixed_int(2).to_i32
+      month  = packet.read_byte!.to_i32
+      day    = packet.read_byte!.to_i32
+      return ::Time.new(year,month,day) if pkt < 6
+      hour   = packet.read_byte!.to_i32
+      minute = packet.read_byte!.to_i32
+      second = packet.read_byte!.to_i32
+      return ::Time.new(year,month,day,hour,minute,second) if pkt < 8
+      ms     = packet.read_int.to_i32 / 1000 #returns microseconds, time only supports milliseconds
+      return ::Time.new(year, month, day, hour, minute, second, ms)
+    end
+  end
   decl_type Year, 0x0du8
   decl_type VarChar, 0x0fu8
   decl_type Bit, 0x10u8

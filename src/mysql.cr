@@ -2,7 +2,7 @@ require "db"
 require "./mysql/*"
 
 module MySql
-  record ColumnSpec, catalog : String, schema : String, table : String, org_table : String, name : String, org_name : String, character_set : Int64, column_length : Int16, column_type_code : UInt8
+  record ColumnSpec, catalog : String, schema : String, table : String, org_table : String, name : String, org_name : String, character_set : UInt16, column_length : UInt32, column_type_code : UInt8, flags : UInt16, decimal : UInt8
 
   struct ColumnSpec
     def column_type

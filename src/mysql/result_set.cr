@@ -72,7 +72,13 @@ class MySql::ResultSet < DB::ResultSet
     if is_nil
       nil
     else
-      @columns[col].column_type.read(row_packet)
+      val = @columns[col].column_type.read(row_packet)
+      # http://dev.mysql.com/doc/internals/en/character-set.html
+      if val.is_a?(Slice(UInt8)) && @columns[col].character_set != 63
+        ::String.new(val)
+      else
+        val
+      end
     end
   end
 end

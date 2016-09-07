@@ -141,23 +141,44 @@ describe Driver do
     end
   end
 
-  it "executes with bind blob" do
-    with_test_db do |db|
-      ary = UInt8[0x41, 0x5A, 0x61, 0x7A]
-      slice = Bytes.new(ary.to_unsafe, ary.size)
+  types = [
+    {"type" => "TINYBLOB", "size" => 10},
+    {"type" => "BLOB", "size" => 1000},
+    {"type" => "MEDIUMBLOB", "size" => 10000},
+    {"type" => "LONGBLOB", "size" => 1000000},
+  ].each do |row|
+    it "set/get " + row["type"].as(String) do
+      with_test_db do |db|
+        ary = UInt8[0x41, 0x5A, 0x61, 0x7A] * row["size"].as(Int32)
+        slice = Bytes.new(ary.to_unsafe, ary.size)
+        db.exec "create table t1 (b1 " + row["type"].as(String) + ")"
+        db.exec "insert into t1 (b1) values (?)", slice
+        slice = db.scalar(%(select b1 from t1)).as(Bytes)
+        slice.to_a.should eq(ary)
+      end
+    end
+  end
 
-      db.exec "create table t1 (b1 BLOB)"
-      db.exec "insert into t1 (b1) values (?)", slice
-
-      slice = db.scalar(%(select b1 from t1)).as(Bytes)
-      slice.to_a.should eq(ary)
+  types = [
+    {"type" => "TINYTEXT", "size" => 10},
+    {"type" => "TEXT", "size" => 1000},
+    {"type" => "MEDIUMTEXT", "size" => 10000},
+    {"type" => "LONGTEXT", "size" => 100000},
+  ].each do |row|
+    it "set/get " + row["type"].as(String) do
+      with_test_db do |db|
+        txt = "Ham Sandwich" * row["size"].as(Int32)
+        db.exec "create table tab1 (txt1 " + row["type"].as(String) + ")"
+        db.exec "insert into tab1 (txt1) values (?)", txt
+        text = db.scalar(%(select txt1 from tab1))
+        text.should eq(txt)
+      end
     end
   end
 
   it "gets column count" do
     with_test_db do |db|
       db.exec "create table person (name varchar(25), age integer)"
-
       db.query "select * from person" do |rs|
         rs.column_count.should eq(2)
       end

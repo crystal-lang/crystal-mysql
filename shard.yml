@@ -1,10 +1,10 @@
 name: mysql
-version: 0.1.2
+version: 0.2.0
 
 dependencies:
   db:
     github: crystal-lang/crystal-db
-    branch: master
+    version: ~> 0.2.0
 
 authors:
   - Juan Wajnerman <jwajnerman@manas.com.ar>

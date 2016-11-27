@@ -62,11 +62,11 @@ class MySql::Connection < DB::Connection
 
   # :nodoc:
   def write_packet(seq = 0)
-    content = MemoryIO.new
+    content = IO::Memory.new
     yield WritePacket.new(content, self)
     bytesize = content.bytesize
 
-    packet = MemoryIO.new
+    packet = IO::Memory.new
     3.times do
       packet.write_byte (bytesize & 0xff_u8).to_u8
       bytesize >>= 8

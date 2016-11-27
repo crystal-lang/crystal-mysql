@@ -5,7 +5,7 @@ describe MySql::Protocol do
     it "should write/read LengthEncodedInteger: {{number}}" do
       DB.open "mysql://root@localhost" do |db|
         db.using_connection do |connection|
-          content = MemoryIO.new
+          content = IO::Memory.new
 
           # fake header with a 255 packet size
           content.write_bytes(0xFF_u8, IO::ByteFormat::LittleEndian)

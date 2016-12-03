@@ -16,6 +16,14 @@ abstract struct MySql::Type
 
   # Returns which MySql::Type should be used to encode values of type *t*.
   # Used when sending query params.
+  def self.type_for(t : ::Int8.class)
+    MySql::Type::Tiny
+  end
+
+  def self.type_for(t : ::Int16.class)
+    MySql::Type::Short
+  end
+
   def self.type_for(t : ::Int32.class)
     MySql::Type::Long
   end
@@ -59,13 +67,13 @@ abstract struct MySql::Type
   # Writes in packet the value in ProtocolBinary format.
   # Used when sending query params.
   def self.write(packet, v : DB::Any)
-    raise "not supported"
+    raise "not supported write"
   end
 
   # Reads from packet a value in ProtocolBinary format of the type
   # specified by self.
   def self.read(packet)
-    raise "not supported"
+    raise "not supported read"
   end
 
   macro decl_type(name, value, db_any_type = nil)
@@ -93,8 +101,8 @@ abstract struct MySql::Type
   end
 
   decl_type Decimal, 0x00u8
-  decl_type Tiny, 0x01u8
-  decl_type Short, 0x02u8
+  decl_type Tiny, 0x01u8, ::Int8
+  decl_type Short, 0x02u8, ::Int16
   decl_type Long, 0x03u8, ::Int32
   decl_type Float, 0x04u8, ::Float32
   decl_type Double, 0x05u8, ::Float64

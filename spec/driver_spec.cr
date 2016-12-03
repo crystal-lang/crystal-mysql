@@ -16,6 +16,8 @@ end
 def mysql_type_for(v)
   case v
   when String ; "varchar(25)"
+  when Int8   ; "tinyint(1)"
+  when Int16  ; "smallint(2)"
   when Int32  ; "int"
   when Int64  ; "bigint"
   when Float32; "float"
@@ -94,7 +96,7 @@ describe Driver do
     end
   end
 
-  {% for value in [1, 1_i64, "hello", 1.5, 1.5_f32] %}
+  {% for value in [54_i16, 1_i8, 5_i8, 1, 1_i64, "hello", 1.5, 1.5_f32] %}
     it "executes and select nil as type of {{value.id}}" do
       with_db do |db|
         db.scalar("select null").should be_nil
@@ -206,7 +208,7 @@ describe Driver do
     end
   end
 
-  {% for value in [1, 1_i64, "hello", 1.5, 1.5_f32] %}
+  {% for value in [54_i16, 1_i8, 5_i8, 1, 1_i64, "hello", 1.5, 1.5_f32] %}
     it "insert/get value {{value.id}} from table" do
       with_test_db do |db|
         db.exec "create table table1 (col1 #{mysql_type_for({{value}})})"

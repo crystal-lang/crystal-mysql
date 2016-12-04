@@ -16,6 +16,14 @@ abstract struct MySql::Type
 
   # Returns which MySql::Type should be used to encode values of type *t*.
   # Used when sending query params.
+  def self.type_for(t : ::Int8.class)
+    MySql::Type::Tiny
+  end
+
+  def self.type_for(t : ::Int16.class)
+    MySql::Type::Short
+  end
+
   def self.type_for(t : ::Int32.class)
     MySql::Type::Long
   end

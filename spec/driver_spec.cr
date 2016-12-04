@@ -4,11 +4,11 @@ def with_db(&block : DB::Database ->)
   DB.open "mysql://root@localhost", &block
 end
 
-def with_test_db(&block : DB::Database ->)
+def with_test_db(options = "", &block : DB::Database ->)
   DB.open "mysql://root@localhost" do |db|
     db.exec "DROP DATABASE IF EXISTS crystal_mysql_test"
     db.exec "CREATE DATABASE crystal_mysql_test"
-    DB.open "mysql://root@localhost/crystal_mysql_test", &block
+    DB.open "mysql://root@localhost/crystal_mysql_test?#{options}", &block
     db.exec "DROP DATABASE IF EXISTS crystal_mysql_test"
   end
 end
@@ -78,9 +78,10 @@ describe Driver do
   end
 
   # "SELECT 1" returns a Int64. So this test are not to be used as is on all DB::Any
+  {% for prepared_statements in [true, false] %}
   {% for value in [1_i64, "hello", 1.5] %}
     it "executes and select {{value.id}}" do
-      with_db do |db|
+      with_test_db "prepared_statements=#{{{prepared_statements}}}" do |db|
         db.scalar("select #{sql({{value}})}").should eq({{value}})
 
         db.query "select #{sql({{value}})}" do |rs|
@@ -88,6 +89,7 @@ describe Driver do
         end
       end
     end
+  {% end %}
   {% end %}
 
   it "executes with bind nil" do
@@ -97,8 +99,9 @@ describe Driver do
   end
 
   {% for value in [54_i16, 1_i8, 5_i8, 1, 1_i64, "hello", 1.5, 1.5_f32] %}
+    {% for prepared_statements in [true, false] %}
     it "executes and select nil as type of {{value.id}}" do
-      with_db do |db|
+      with_test_db "prepared_statements=#{{{prepared_statements}}}" do |db|
         db.scalar("select null").should be_nil
 
         db.query "select null" do |rs|
@@ -106,6 +109,7 @@ describe Driver do
         end
       end
     end
+    {% end %}
 
     it "executes with bind {{value.id}}" do
       with_db do |db|
@@ -134,8 +138,9 @@ describe Driver do
     end
   end
 
+  {% for prepared_statements in [true, false] %}
   it "executes and selects blob" do
-    with_test_db do |db|
+    with_test_db "prepared_statements=#{{{prepared_statements}}}" do |db|
       db.exec "create table t1 (b1 BLOB)"
       db.exec "insert into t1 (b1) values (X'415A617A')"
       slice = db.scalar(%(select b1 from t1)).as(Bytes)
@@ -150,11 +155,12 @@ describe Driver do
     {"type" => "LONGBLOB", "size" => 1000000},
   ].each do |row|
     it "set/get " + row["type"].as(String) do
-      with_test_db do |db|
+      with_test_db "prepared_statements=#{{{prepared_statements}}}" do |db|
         ary = UInt8[0x41, 0x5A, 0x61, 0x7A] * row["size"].as(Int32)
         slice = Bytes.new(ary.to_unsafe, ary.size)
         db.exec "create table t1 (b1 " + row["type"].as(String) + ")"
-        db.exec "insert into t1 (b1) values (?)", slice
+        # TODO remove when unprepared statements support args
+        db.prepared.exec "insert into t1 (b1) values (?)", slice
         slice = db.scalar(%(select b1 from t1)).as(Bytes)
         slice.to_a.should eq(ary)
       end
@@ -168,10 +174,11 @@ describe Driver do
     {"type" => "LONGTEXT", "size" => 100000},
   ].each do |row|
     it "set/get " + row["type"].as(String) do
-      with_test_db do |db|
+      with_test_db "prepared_statements=#{{{prepared_statements}}}" do |db|
         txt = "Ham Sandwich" * row["size"].as(Int32)
         db.exec "create table tab1 (txt1 " + row["type"].as(String) + ")"
-        db.exec "insert into tab1 (txt1) values (?)", txt
+        # TODO remove when unprepared statements support args
+        db.prepared.exec "insert into tab1 (txt1) values (?)", txt
         text = db.scalar(%(select txt1 from tab1))
         text.should eq(txt)
       end
@@ -179,7 +186,7 @@ describe Driver do
   end
 
   it "gets column count" do
-    with_test_db do |db|
+    with_test_db "prepared_statements=#{{{prepared_statements}}}" do |db|
       db.exec "create table person (name varchar(25), age integer)"
       db.query "select * from person" do |rs|
         rs.column_count.should eq(2)
@@ -188,7 +195,7 @@ describe Driver do
   end
 
   it "gets column name" do
-    with_test_db do |db|
+    with_test_db "prepared_statements=#{{{prepared_statements}}}" do |db|
       db.exec "create table person (name varchar(25), age integer)"
 
       db.query "select * from person" do |rs|
@@ -199,7 +206,7 @@ describe Driver do
   end
 
   it "gets last insert row id" do
-    with_test_db do |db|
+    with_test_db "prepared_statements=#{{{prepared_statements}}}" do |db|
       db.exec "create table person (id int not null primary key auto_increment, name varchar(25), age int)"
       db.exec %(insert into person (name, age) values ("foo", 10))
       res = db.exec %(insert into person (name, age) values ("foo", 10))
@@ -210,9 +217,10 @@ describe Driver do
 
   {% for value in [54_i16, 1_i8, 5_i8, 1, 1_i64, "hello", 1.5, 1.5_f32] %}
     it "insert/get value {{value.id}} from table" do
-      with_test_db do |db|
+      with_test_db "prepared_statements=#{{{prepared_statements}}}" do |db|
         db.exec "create table table1 (col1 #{mysql_type_for({{value}})})"
         db.exec %(insert into table1 (col1) values (#{sql({{value}})}))
+
         db.scalar("select col1 from table1").should eq({{value}})
       end
     end
@@ -225,6 +233,7 @@ describe Driver do
         db.scalar("select col1 from table1").should eq({{value}})
       end
     end
+  {% end %}
   {% end %}
 
   # zero dates http://dev.mysql.com/doc/refman/5.7/en/datetime.html - work on some mysql not others,

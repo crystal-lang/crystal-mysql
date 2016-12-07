@@ -216,6 +216,15 @@ describe Driver do
         db.scalar("select col1 from table1").should eq({{value}})
       end
     end
+
+    it "insert/get value {{value.id}} from table with binding" do
+      with_test_db do |db|
+        db.exec "create table table1 (col0 varchar(25), col1 #{mysql_type_for({{value}})})"
+        # the next statement will force a union in the *args
+        db.exec %(insert into table1 (col0, col1) values (?, ?)), "", {{value}}
+        db.scalar("select col1 from table1").should eq({{value}})
+      end
+    end
   {% end %}
 
   # zero dates http://dev.mysql.com/doc/refman/5.7/en/datetime.html - work on some mysql not others,

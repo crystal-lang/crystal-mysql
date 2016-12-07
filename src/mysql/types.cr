@@ -66,7 +66,7 @@ abstract struct MySql::Type
 
   # Writes in packet the value in ProtocolBinary format.
   # Used when sending query params.
-  def self.write(packet, v : DB::Any)
+  def self.write(packet, v)
     raise "not supported write"
   end
 

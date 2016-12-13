@@ -137,7 +137,11 @@ class MySql::Connection < DB::Connection
     end
   end
 
-  def build_statement(query)
+  def build_prepared_statement(query)
     MySql::Statement.new(self, query)
+  end
+
+  def build_unprepared_statement(query)
+    MySql::UnpreparedStatement.new(self, query)
   end
 end

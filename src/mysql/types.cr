@@ -76,6 +76,12 @@ abstract struct MySql::Type
     raise "not supported read"
   end
 
+  # Parse from str a value in TextProtocol format of the type
+  # specified by self.
+  def self.parse(str : ::String)
+    raise "not supported"
+  end
+
   macro decl_type(name, value, db_any_type = nil)
     struct {{name}} < Type
       @@hex_value = {{value}}
@@ -91,6 +97,10 @@ abstract struct MySql::Type
 
       def self.read(packet)
         packet.read_bytes {{db_any_type}}, IO::ByteFormat::LittleEndian
+      end
+
+      def self.parse(str : ::String)
+        {{db_any_type}}.new(str)
       end
       {% end %}
 
@@ -108,6 +118,10 @@ abstract struct MySql::Type
   decl_type Double, 0x05u8, ::Float64
   decl_type Null, 0x06u8, ::Nil do
     def self.read(packet)
+      nil
+    end
+
+    def self.parse(str : ::String)
       nil
     end
   end
@@ -135,6 +149,10 @@ abstract struct MySql::Type
       ms = packet.read_int.to_i32 / 1000 # returns microseconds, time only supports milliseconds
       return ::Time.new(year, month, day, hour, minute, second, ms)
     end
+
+    def self.parse(str : ::String)
+      raise "TextProtocol::Time not implemented"
+    end
   end
   decl_type Year, 0x0du8
   decl_type VarChar, 0x0fu8
@@ -157,6 +175,10 @@ abstract struct MySql::Type
     def self.read(packet)
       packet.read_blob
     end
+
+    def self.parse(str : ::String)
+      str.to_slice
+    end
   end
   decl_type VarString, 0xfdu8, ::String do
     def self.write(packet, v : ::String)
@@ -166,6 +188,10 @@ abstract struct MySql::Type
     def self.read(packet)
       packet.read_lenenc_string
     end
+
+    def self.parse(str : ::String)
+      str
+    end
   end
   decl_type String, 0xfeu8, ::String do
     def self.write(packet, v : ::String)
@@ -174,6 +200,10 @@ abstract struct MySql::Type
 
     def self.read(packet)
       packet.read_lenenc_string
+    end
+
+    def self.parse(str : ::String)
+      str
     end
   end
   decl_type Geometry, 0xffu8

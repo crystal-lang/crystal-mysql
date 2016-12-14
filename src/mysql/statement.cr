@@ -50,7 +50,7 @@ class MySql::Statement < DB::Statement
       if params.size > 0
         null_bitmap = BitArray.new(params.size)
         args.each_with_index do |arg, index|
-          next if arg
+          next unless arg.nil?
           null_bitmap[index] = true
         end
         null_bitmap_slice = null_bitmap.to_slice
@@ -61,6 +61,7 @@ class MySql::Statement < DB::Statement
         # TODO raise if args.size and params.size does not match
         # params types
         args.each do |arg|
+          arg = MySql::Type.to_mysql(arg)
           t = MySql::Type.type_for(arg.class)
           packet.write_byte t.hex_value
           packet.write_byte 0x00u8
@@ -68,7 +69,8 @@ class MySql::Statement < DB::Statement
 
         # params values
         args.each do |arg|
-          next unless arg
+          next if arg.nil?
+          arg = MySql::Type.to_mysql(arg)
           t = MySql::Type.type_for(arg.class)
           t.write(packet, arg)
         end

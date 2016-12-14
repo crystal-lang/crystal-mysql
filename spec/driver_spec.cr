@@ -16,6 +16,7 @@ end
 def mysql_type_for(v)
   case v
   when String ; "varchar(25)"
+  when Bool   ; "bool"
   when Int8   ; "tinyint(1)"
   when Int16  ; "smallint(2)"
   when Int32  ; "int"
@@ -215,13 +216,22 @@ describe Driver do
     end
   end
 
-  {% for value in [54_i16, 1_i8, 5_i8, 1, 1_i64, "hello", 1.5, 1.5_f32] %}
-    it "insert/get value {{value.id}} from table" do
+  {% for value in [false, true, 54_i16, 1_i8, 5_i8, 1, 1_i64, "hello", 1.5, 1.5_f32] %}
+    it "insert/get value {{value.id}} from table with prepared_statements={{prepared_statements}}" do
       with_test_db "prepared_statements=#{{{prepared_statements}}}" do |db|
         db.exec "create table table1 (col1 #{mysql_type_for({{value}})})"
         db.exec %(insert into table1 (col1) values (#{sql({{value}})}))
 
-        db.scalar("select col1 from table1").should eq({{value}})
+        db.query_one("select col1 from table1", as: typeof({{value}})).should eq({{value}})
+      end
+    end
+
+    it "insert/get value {{value.id}} from table as nillable with prepared_statements={{prepared_statements}}" do
+      with_test_db "prepared_statements=#{{{prepared_statements}}}" do |db|
+        db.exec "create table table1 (col1 #{mysql_type_for({{value}})})"
+        db.exec %(insert into table1 (col1) values (#{sql({{value}})}))
+
+        db.query_one("select col1 from table1", as: typeof({{value || nil}})).should eq({{value}})
       end
     end
 
@@ -230,7 +240,16 @@ describe Driver do
         db.exec "create table table1 (col0 varchar(25), col1 #{mysql_type_for({{value}})})"
         # the next statement will force a union in the *args
         db.exec %(insert into table1 (col0, col1) values (?, ?)), "", {{value}}
-        db.scalar("select col1 from table1").should eq({{value}})
+        db.query_one("select col1 from table1", as: typeof({{value}})).should eq({{value}})
+      end
+    end
+
+    it "insert/get value {{value.id}} from table as nillable with binding" do
+      with_test_db do |db|
+        db.exec "create table table1 (col0 varchar(25), col1 #{mysql_type_for({{value}})})"
+        # the next statement will force a union in the *args
+        db.exec %(insert into table1 (col0, col1) values (?, ?)), "", {{value}}
+        db.query_one("select col1 from table1", as: typeof({{value || nil}})).should eq({{value}})
       end
     end
   {% end %}

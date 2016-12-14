@@ -82,6 +82,21 @@ abstract struct MySql::Type
     raise "not supported"
   end
 
+  # :nodoc:
+  def self.to_mysql(v)
+    v
+  end
+
+  # :nodoc:
+  def self.to_mysql(v : Bool)
+    v ? 1i8 : 0i8
+  end
+
+  # :nodoc:
+  def self.from_mysql(v : Int8)
+    v != 0i8
+  end
+
   macro decl_type(name, value, db_any_type = nil)
     struct {{name}} < Type
       @@hex_value = {{value}}

@@ -71,6 +71,12 @@ class MySql::ResultSet < DB::ResultSet
     @column_index += 1
     if is_nil
       nil
+    elsif false
+      # this is need to make read "return" a Bool
+      # otherwise the base `#read(T) forall T` (which is ovewriten)
+      # complains to cast `read.as(Bool)` since the return type
+      # of #read would be a union without Bool
+      false
     else
       val = @columns[col].column_type.read(row_packet)
       # http://dev.mysql.com/doc/internals/en/character-set.html
@@ -79,6 +85,18 @@ class MySql::ResultSet < DB::ResultSet
       else
         val
       end
+    end
+  end
+
+  def read(t : Bool.class)
+    MySql::Type.from_mysql(read.as(Int8))
+  end
+
+  def read(t : (Bool | Nil).class)
+    if v = read.as(Int8 | Nil)
+      MySql::Type.from_mysql(v)
+    else
+      nil
     end
   end
 end

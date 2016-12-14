@@ -81,4 +81,16 @@ class MySql::TextResultSet < DB::ResultSet
       end
     end
   end
+
+  def read(t : Bool.class)
+    MySql::Type.from_mysql(read.as(Int8))
+  end
+
+  def read(t : (Bool | Nil).class)
+    if v = read.as(Int8 | Nil)
+      MySql::Type.from_mysql(v)
+    else
+      nil
+    end
+  end
 end

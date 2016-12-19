@@ -140,7 +140,19 @@ abstract struct MySql::Type
       nil
     end
   end
-  decl_type Timestamp, 0x07u8
+  decl_type Timestamp, 0x07u8, ::Time do
+    def self.write(packet, v : ::Time)
+      MySql::Type::DateTime.write(packet, v)
+    end
+
+    def self.read(packet)
+      MySql::Type::DateTime.read(packet)
+    end
+
+    def self.parse(str : ::String)
+      raise "TextProtocol::Timestamp not implemented"
+    end
+  end
   decl_type LongLong, 0x08u8, ::Int64
   decl_type Int24, 0x09u8
   decl_type Date, 0x0au8

@@ -314,6 +314,16 @@ describe Driver do
     end
   end
 
+  it "get timestamp from table" do
+    with_test_db do |db|
+      db.exec "create table table1 (m int, dt datetime, ts timestamp DEFAULT CURRENT_TIMESTAMP)"
+      db.exec "insert into table1 (m, dt) values(?, NOW())", 1
+
+      dt, ts = db.query_one "SELECT dt, ts from table1", as: {Time, Time}
+      (ts - dt).total_seconds.should be_close(0.0, 0.5)
+    end
+  end
+
   it "raises on unsupported param types" do
     with_db do |db|
       expect_raises Exception, "MySql::Type does not support NotSupportedType values" do

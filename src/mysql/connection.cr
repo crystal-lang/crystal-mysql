@@ -3,31 +3,34 @@ require "socket"
 class MySql::Connection < DB::Connection
   def initialize(db : DB::Database)
     super(db)
+    @socket = uninitialized TCPSocket
 
-    host = db.uri.host.not_nil!
-    port = db.uri.port || 3306
-    username = db.uri.user
-    password = db.uri.password
+    begin
+      host = db.uri.host.not_nil!
+      port = db.uri.port || 3306
+      username = db.uri.user
+      password = db.uri.password
 
-    path = db.uri.path
-    if path && path.size > 1
-      initial_catalog = path[1..-1]
-    else
-      initial_catalog = nil
+      path = db.uri.path
+      if path && path.size > 1
+        initial_catalog = path[1..-1]
+      else
+        initial_catalog = nil
+      end
+
+      @socket = TCPSocket.new(host, port)
+      handshake = read_packet(Protocol::HandshakeV10)
+
+      write_packet(1) do |packet|
+        Protocol::HandshakeResponse41.new(username, password, initial_catalog, handshake.auth_plugin_data).write(packet)
+      end
+
+      read_ok_or_err do |packet, status|
+        raise "packet #{status} not implemented"
+      end
+    rescue Errno
+      raise DB::ConnectionRefused.new
     end
-
-    @socket = TCPSocket.new(host, port)
-    handshake = read_packet(Protocol::HandshakeV10)
-
-    write_packet(1) do |packet|
-      Protocol::HandshakeResponse41.new(username, password, initial_catalog, handshake.auth_plugin_data).write(packet)
-    end
-
-    read_ok_or_err do |packet, status|
-      raise "packet #{status} not implemented"
-    end
-  rescue Errno
-    raise DB::ConnectionRefused.new
   end
 
   # :nodoc:

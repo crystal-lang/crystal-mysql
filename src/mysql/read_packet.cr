@@ -1,9 +1,9 @@
 class MySql::ReadPacket
   include IO
 
-  @length : Int32
-  @remaining : Int32
-  @seq : UInt8
+  @length : Int32 = 0
+  @remaining : Int32 = 0
+  @seq : UInt8 = 0u8
 
   def initialize(@io : IO, @connection : Connection)
     begin

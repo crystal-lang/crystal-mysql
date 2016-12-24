@@ -1,3 +1,9 @@
+## v0.3.1 (2016-12-24)
+
+* Update to crystal-db ~> 0.3.3
+* Fix compatibility issues for crystal 0.20.3
+* Add support for Timestamp
+
 ## v0.3.0 (2016-12-15)
 
 * Update to crystal-db ~> 0.3.1

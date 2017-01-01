@@ -6,6 +6,9 @@ class MySql::ReadPacket
   @seq : UInt8 = 0u8
 
   def initialize(@io : IO, @connection : Connection)
+    @length = 0
+    @remaining = 0
+    @seq = 0u8
     begin
       header = uninitialized UInt8[4]
       io.read_fully(header.to_slice)

@@ -1,3 +1,5 @@
+require "json"
+
 # :nodoc:
 abstract struct MySql::Type
   # Column types

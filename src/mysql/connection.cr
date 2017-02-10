@@ -33,6 +33,11 @@ class MySql::Connection < DB::Connection
     end
   end
 
+  def do_close
+    super
+    @socket.close rescue nil
+  end
+
   # :nodoc:
   def read_ok_or_err
     read_packet do |packet|

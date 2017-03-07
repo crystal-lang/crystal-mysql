@@ -1,17 +1,17 @@
 require "socket"
 
 class MySql::Connection < DB::Connection
-  def initialize(db : DB::Database)
-    super(db)
+  def initialize(context : DB::ConnectionContext)
+    super(context)
     @socket = uninitialized TCPSocket
 
     begin
-      host = db.uri.host.not_nil!
-      port = db.uri.port || 3306
-      username = db.uri.user
-      password = db.uri.password
+      host = context.uri.host.not_nil!
+      port = context.uri.port || 3306
+      username = context.uri.user
+      password = context.uri.password
 
-      path = db.uri.path
+      path = context.uri.path
       if path && path.size > 1
         initial_catalog = path[1..-1]
       else

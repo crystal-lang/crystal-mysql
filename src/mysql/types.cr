@@ -159,7 +159,7 @@ abstract struct MySql::Type
   decl_type Time, 0x0bu8
   decl_type DateTime, 0x0cu8, ::Time do
     def self.write(packet, v : ::Time)
-      packet.write_blob UInt8.slice(v.year.to_i16, v.year.to_i16/256, v.month.to_i8, v.day.to_i8, v.hour.to_i8, v.minute.to_i8, v.second.to_i8, v.millisecond*1000, v.millisecond*1000/256, v.millisecond*1000/65536)
+      packet.write_blob UInt8.slice(v.year.to_i16, v.year.to_i16/256, v.month.to_i8, v.day.to_i8, v.hour.to_i8, v.minute.to_i8, v.second.to_i8, v.millisecond*1000, v.millisecond*1000/256, v.millisecond*1000/65536, v.millisecond*1000/65536 v.millisecond*1000/16711425)
     end
 
     def self.read(packet)

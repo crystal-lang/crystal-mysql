@@ -1,5 +1,5 @@
 name: mysql
-version: 0.3.1
+version: 0.3.2
 
 dependencies:
   db:
@@ -7,7 +7,7 @@ dependencies:
     version: ~> 0.4.0
 
 authors:
-  - Juan Wajnerman <jwajnerman@manas.com.ar>
-  - Brian J. Cardiff <bcardiff@manas.com.ar>
+  - Juan Wajnerman <jwajnerman@manas.tech>
+  - Brian J. Cardiff <bcardiff@manas.tech>
 
 license: MIT

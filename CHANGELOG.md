@@ -1,3 +1,7 @@
+## v0.3.2 (2017-03-21)
+
+* Update to crystal-db ~> 0.4.0
+
 ## v0.3.1 (2016-12-24)
 
 * Update to crystal-db ~> 0.3.3

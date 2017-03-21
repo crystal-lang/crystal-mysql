@@ -1,6 +1,6 @@
 class MySql::Driver < DB::Driver
-  def build_connection(db : DB::Database)
-    MySql::Connection.new(db)
+  def build_connection(context : DB::ConnectionContext)
+    MySql::Connection.new(context)
   end
 end
 

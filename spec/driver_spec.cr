@@ -4,6 +4,10 @@ def with_db(&block : DB::Database ->)
   DB.open "mysql://root@localhost", &block
 end
 
+def with_cnn(&block : DB::Connection ->)
+  DB.connect "mysql://root@localhost", &block
+end
+
 def with_test_db(options = "", &block : DB::Database ->)
   DB.open "mysql://root@localhost" do |db|
     db.exec "DROP DATABASE IF EXISTS crystal_mysql_test"
@@ -75,6 +79,13 @@ describe Driver do
 
     with_db do |db|
       db.exec "DROP DATABASE IF EXISTS crystal_mysql_test"
+    end
+  end
+
+  it "should DB.connect" do
+    with_cnn do |cnn|
+      cnn.should be_a(MySql::Connection)
+      cnn.scalar("select 42").should eq(42)
     end
   end
 

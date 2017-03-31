@@ -13,7 +13,7 @@ module MySql::Protocol
       thread = packet.read_int
 
       auth_data = Bytes.new(20)
-      packet.read(auth_data[0, 8])
+      packet.read_fully(auth_data[0, 8])
       packet.read_byte!
       cap1 = packet.read_byte!
       cap2 = packet.read_byte!
@@ -24,7 +24,7 @@ module MySql::Protocol
 
       auth_plugin_data_length = packet.read_byte!
       packet.read_byte_array(10)
-      packet.read(auth_data[8, {13, auth_plugin_data_length.to_i16 - 8}.max - 1])
+      packet.read_fully(auth_data[8, {13, auth_plugin_data_length.to_i16 - 8}.max - 1])
       packet.read_byte!
       packet.read_string
 

@@ -51,7 +51,7 @@ class MySql::ResultSet < DB::ResultSet
     end
 
     @column_index = 0
-    row_packet.read(@null_bitmap_slice)
+    row_packet.read_fully(@null_bitmap_slice)
     return true
   end
 

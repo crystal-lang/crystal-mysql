@@ -7,18 +7,18 @@ end
 
 DB::DriverSpecs(MySql::Any).run do
   before do
-    DB.open "mysql://root@localhost" do |db|
+    DB.open db_url do |db|
       db.exec "DROP DATABASE IF EXISTS crystal_mysql_test"
       db.exec "CREATE DATABASE crystal_mysql_test"
     end
   end
   after do
-    DB.open "mysql://root@localhost" do |db|
+    DB.open db_url do |db|
       db.exec "DROP DATABASE IF EXISTS crystal_mysql_test"
     end
   end
 
-  connection_string "mysql://root@localhost/crystal_mysql_test"
+  connection_string db_url("crystal_mysql_test")
 
   sample_value true, "bool", "true", type_safe_value: false
   sample_value false, "bool", "false", type_safe_value: false
@@ -32,7 +32,7 @@ DB::DriverSpecs(MySql::Any).run do
   sample_value Time.new(2016, 2, 15), "datetime", "TIMESTAMP '2016-02-15 00:00:00.000'"
   sample_value Time.new(2016, 2, 15, 10, 15, 30), "datetime", "TIMESTAMP '2016-02-15 10:15:30.000'"
 
-  with_db do |db|
+  DB.open db_url do |db|
     # needs to check version, microsecond support >= 5.7
     dbversion = SemanticVersion.parse(db.scalar("SELECT VERSION();").as(String))
     if dbversion >= SemanticVersion.new(5, 7, 0)

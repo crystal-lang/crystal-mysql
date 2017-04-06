@@ -1,7 +1,7 @@
 require "./spec_helper"
 
 def with_db(&block : DB::Database ->)
-  DB.open "mysql://root@localhost", &block
+  DB.open db_url, &block
 end
 
 describe Driver do
@@ -43,7 +43,7 @@ describe Driver do
     with_db do |db|
       db.exec "DROP DATABASE IF EXISTS crystal_mysql_test"
       db.exec "CREATE DATABASE crystal_mysql_test"
-      DB.open "mysql://root@localhost/crystal_mysql_test" do |db|
+      DB.open db_url("crystal_mysql_test") do |db|
         db.scalar(sql).should eq(1)
         db.scalar("SELECT DATABASE()").should eq("crystal_mysql_test")
       end

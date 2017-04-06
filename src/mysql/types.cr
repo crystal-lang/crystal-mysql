@@ -150,7 +150,7 @@ abstract struct MySql::Type
     end
 
     def self.parse(str : ::String)
-      raise "TextProtocol::Timestamp not implemented"
+      MySql::Type::DateTime.parse(str)
     end
   end
   decl_type LongLong, 0x08u8, ::Int64

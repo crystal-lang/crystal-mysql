@@ -31,12 +31,14 @@ DB::DriverSpecs(MySql::Any).run do
   sample_value 1.5, "double", "1.5"
   sample_value Time.new(2016, 2, 15), "datetime", "TIMESTAMP '2016-02-15 00:00:00.000'"
   sample_value Time.new(2016, 2, 15, 10, 15, 30), "datetime", "TIMESTAMP '2016-02-15 10:15:30.000'"
+  sample_value Time.new(2016, 2, 15, 10, 15, 30), "timestamp", "TIMESTAMP '2016-02-15 10:15:30.000'"
 
   DB.open db_url do |db|
     # needs to check version, microsecond support >= 5.7
     dbversion = SemanticVersion.parse(db.scalar("SELECT VERSION();").as(String))
     if dbversion >= SemanticVersion.new(5, 7, 0)
       sample_value Time.new(2016, 2, 15, 10, 15, 30, 543), "datetime(3)", "TIMESTAMP '2016-02-15 10:15:30.543'"
+      sample_value Time.new(2016, 2, 15, 10, 15, 30, 543), "timestamp(3)", "TIMESTAMP '2016-02-15 10:15:30.543'"
     end
 
     # zero dates http://dev.mysql.com/doc/refman/5.7/en/datetime.html - work on some mysql not others,

@@ -9,4 +9,6 @@ module MySql
       MySql::Type.types_by_code[column_type_code]
     end
   end
+
+  alias Any = DB::Any | Int16 | Int8
 end

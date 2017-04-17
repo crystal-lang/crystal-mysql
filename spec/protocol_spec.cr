@@ -3,7 +3,7 @@ require "./spec_helper"
 describe MySql::Protocol do
   {% for number in [42, 250, 251, 1042, 65_535, 65_536, 65_542, 16_777_215, 16_777_216, 16_777_242, UInt64::MAX] %}
     it "should write/read LengthEncodedInteger: {{number}}" do
-      DB.open "mysql://root@localhost" do |db|
+      DB.open db_url do |db|
         db.using_connection do |connection|
           content = IO::Memory.new
 

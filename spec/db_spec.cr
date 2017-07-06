@@ -157,4 +157,23 @@ DB::DriverSpecs(MySql::Any).run do
       end
     end
   end
+
+  it "does not close a connection before cleaning up the resultset" do |db|
+    begin
+      DB.open db.uri do |db|
+        db.query("select 'foo'") do |rs|
+          rs.each do
+            rs.read(String)
+          end
+          db.query("select 'bar'") do |rs|
+            rs.each do
+              rs.read(String)
+            end
+          end
+        end
+      end
+    rescue e
+      fail("Expected no exception, but got \"#{e.message}\"")
+    end
+  end
 end

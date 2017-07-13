@@ -176,4 +176,24 @@ DB::DriverSpecs(MySql::Any).run do
       fail("Expected no exception, but got \"#{e.message}\"")
     end
   end
+
+  it "allows unprepared statement queries" do |db|
+    db.exec %(create table if not exists a (i int not null, str text not null);)
+    db.exec %(insert into a (i, str) values (23, "bai bai");)
+
+    2.times do |i|
+      DB.open db.uri do |db|
+        begin
+          db.unprepared.query("SELECT i, str FROM a WHERE i = 23") do |rs|
+            rs.each do
+              rs.read(Int32).should eq 23
+              rs.read(String).should eq "bai bai"
+            end
+          end
+        rescue e
+          fail("Expected no exception, but got \"#{e.message}\"")
+        end
+      end
+    end
+  end
 end

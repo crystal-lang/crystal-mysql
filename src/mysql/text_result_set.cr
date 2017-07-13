@@ -5,7 +5,7 @@ class MySql::TextResultSet < DB::ResultSet
 
   @conn : MySql::Connection
   @row_packet : MySql::ReadPacket?
-  @header : UInt8
+  @first_byte : UInt8
 
   def initialize(statement, column_count)
     super(statement)
@@ -16,8 +16,9 @@ class MySql::TextResultSet < DB::ResultSet
 
     @column_index = 0 # next column index to return
 
-    @header = 0u8
+    @first_byte = 0u8
     @eof_reached = false
+    @first_row_packet = false
   end
 
   def do_close
@@ -41,13 +42,14 @@ class MySql::TextResultSet < DB::ResultSet
 
     @row_packet = row_packet = @conn.build_read_packet
 
-    @header = row_packet.read_byte!
-    if @header == 0xfe # EOF
+    @first_byte = row_packet.read_byte!
+    if @first_byte == 0xfe # EOF
       @eof_reached = true
       return false
     end
 
     @column_index = 0
+    @first_row_packet = true
     # TODO remove row_packet.read(@null_bitmap_slice)
     return true
   end
@@ -63,13 +65,20 @@ class MySql::TextResultSet < DB::ResultSet
   def read
     row_packet = @row_packet.not_nil!
 
-    is_nil = @header == 0xfb
+    if @first_row_packet
+      current_byte = @first_byte
+      @first_row_packet = false
+    else
+      current_byte = row_packet.read_byte!
+    end
+
+    is_nil = current_byte == 0xfb
     col = @column_index
     @column_index += 1
     if is_nil
       nil
     else
-      length = row_packet.read_lenenc_int(@header)
+      length = row_packet.read_lenenc_int(current_byte)
       val = row_packet.read_string(length)
       val = @columns[col].column_type.parse(val)
 

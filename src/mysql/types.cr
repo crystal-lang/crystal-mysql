@@ -52,6 +52,10 @@ abstract struct MySql::Type
     MySql::Type::DateTime
   end
 
+  def self.type_for(t : ::Time::Span.class)
+    MySql::Type::Time
+  end
+
   def self.type_for(t : ::Nil.class)
     MySql::Type::Null
   end
@@ -155,8 +159,58 @@ abstract struct MySql::Type
   end
   decl_type LongLong, 0x08u8, ::Int64
   decl_type Int24, 0x09u8
-  decl_type Date, 0x0au8
-  decl_type Time, 0x0bu8
+
+  def self.datetime_read(packet)
+    MySql::Type::DateTime.read(packet)
+  end
+
+  def self.datetime_write(packet, v : ::Time)
+    MySql::Type::DateTime.write(packet, v)
+  end
+
+  decl_type Date, 0x0au8, ::Time do
+    def self.write(packet, v : ::Time)
+      self.datetime_write(packet, v)
+    end
+
+    def self.read(packet)
+      self.datetime_read(packet)
+    end
+
+    def self.parse(str : ::String)
+      MySql::Type::DateTime.parse(str)
+    end
+  end
+  decl_type Time, 0x0bu8, ::Time::Span do
+    def self.write(packet, v : ::Time::Span)
+      negative = v.to_i < 0 ? 1 : 0
+      d = v.days
+      raise ArgumentError.new("MYSQL TIME over 34 days cannot be saved - https://dev.mysql.com/doc/refman/5.7/en/time.html") if d > 34
+      packet.write_blob UInt8.slice(negative, d.to_i8, (d >> 8).to_i8, (d >> 16).to_i8, (d >> 24).to_i8, v.hours.to_i8, v.minutes.to_i8, v.seconds.to_i8, v.milliseconds*1000, v.milliseconds*1000/256, v.milliseconds*1000/65536)
+    end
+
+    def self.read(packet)
+      pkt = packet.read_byte!
+      return ::Time::Span.new(0) if pkt < 1
+      negative = packet.read_byte!.to_i32
+      days = packet.read_fixed_int(4)
+      hour = packet.read_byte!.to_i32
+      minute = packet.read_byte!.to_i32
+      second = packet.read_byte!.to_i32
+      ms = pkt > 8 ? (packet.read_int.to_i32 / 1000) : nil
+      time = ms ? ::Time::Span.new(days, hour, minute, second, ms) : ::Time::Span.new(days, hour, minute, second)
+      negative > 0 ? (::Time::Span.new(0) - time) : time
+    end
+
+    def self.parse(str : ::String)
+      begin
+        time = ::Time.parse(str, "%H:%M:%S.%L")
+      rescue
+        time = ::Time.parse(str, "%H:%M:%S")
+      end
+      ::Time::Span.new(time.hour, time.minute, time.second)
+    end
+  end
   decl_type DateTime, 0x0cu8, ::Time do
     def self.write(packet, v : ::Time)
       packet.write_blob UInt8.slice(v.year.to_i16, v.year.to_i16/256, v.month.to_i8, v.day.to_i8, v.hour.to_i8, v.minute.to_i8, v.second.to_i8, v.millisecond*1000, v.millisecond*1000/256, v.millisecond*1000/65536)

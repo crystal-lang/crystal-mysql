@@ -32,6 +32,9 @@ DB::DriverSpecs(MySql::Any).run do
   sample_value Time.new(2016, 2, 15), "datetime", "TIMESTAMP '2016-02-15 00:00:00.000'"
   sample_value Time.new(2016, 2, 15, 10, 15, 30), "datetime", "TIMESTAMP '2016-02-15 10:15:30.000'"
   sample_value Time.new(2016, 2, 15, 10, 15, 30), "timestamp", "TIMESTAMP '2016-02-15 10:15:30.000'"
+  sample_value Time::Span.new(0), "Time", "TIME('00:00:00')"
+  sample_value Time::Span.new(10, 25, 21), "Time", "TIME('10:25:21')"
+  sample_value Time::Span.new(0, 0, 10, 5, 0), "Time", "TIME('00:10:05.000')"
 
   DB.open db_url do |db|
     # needs to check version, microsecond support >= 5.7

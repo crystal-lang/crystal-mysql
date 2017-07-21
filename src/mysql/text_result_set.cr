@@ -22,14 +22,14 @@ class MySql::TextResultSet < DB::ResultSet
   end
 
   def do_close
-    super
-
     while move_next
     end
 
     if row_packet = @row_packet
       row_packet.discard
     end
+  ensure
+    super
   end
 
   def move_next : Bool

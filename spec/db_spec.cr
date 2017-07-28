@@ -24,6 +24,7 @@ DB::DriverSpecs(MySql::Any).run do
   sample_value false, "bool", "false", type_safe_value: false
   sample_value 5_i8, "tinyint(1)", "5", type_safe_value: false
   sample_value 54_i16, "smallint(2)", "54", type_safe_value: false
+  sample_value 123, "mediumint(2)", "123", type_safe_value: false
   sample_value 1, "int", "1", type_safe_value: false
   sample_value 1_i64, "bigint", "1"
   sample_value "hello", "varchar(25)", "'hello'"

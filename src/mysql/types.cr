@@ -158,7 +158,7 @@ abstract struct MySql::Type
     end
   end
   decl_type LongLong, 0x08u8, ::Int64
-  decl_type Int24, 0x09u8
+  decl_type Int24, 0x09u8, ::Int32
 
   def self.datetime_read(packet)
     MySql::Type::DateTime.read(packet)

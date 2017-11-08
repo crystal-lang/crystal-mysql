@@ -1,3 +1,10 @@
+## v0.3.3 (2017-11-08)
+
+* Fix release connection. (see [#35](https://github.com/crystal-lang/crystal-mysql/pull/35) and [#38](https://github.com/crystal-lang/crystal-mysql/pull/38), thanks @benoist)
+* Fix unprepared queries creation. ([#37](https://github.com/crystal-lang/crystal-mysql/pull/37), thanks @benoist)
+* Fix use read_fully when reading slice. (see [#25](https://github.com/crystal-lang/crystal-mysql/issues/25))
+* Add support for Date, Time and Mediumint. (see [#31](https://github.com/crystal-lang/crystal-mysql/pull/31) and [#41](https://github.com/crystal-lang/crystal-mysql/pull/41), thanks @crisward)
+
 ## v0.3.2 (2017-03-21)
 
 * Update to crystal-db ~> 0.4.0

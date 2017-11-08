@@ -234,9 +234,13 @@ abstract struct MySql::Type
     def self.parse(str : ::String)
       return ::Time.new(0) if str.starts_with?("0000-00-00")
       begin
-        ::Time.parse(str, "%F %H:%M:%S.%L")
+        begin
+          ::Time.parse(str, "%F %H:%M:%S.%L")
+        rescue
+          ::Time.parse(str, "%F %H:%M:%S")
+        end
       rescue
-        ::Time.parse(str, "%F %H:%M:%S")
+        ::Time.parse(str, "%F")
       end
     end
   end

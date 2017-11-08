@@ -10,5 +10,5 @@ module MySql
     end
   end
 
-  alias Any = DB::Any | Int16 | Int8
+  alias Any = DB::Any | Int16 | Int8 | Time::Span
 end

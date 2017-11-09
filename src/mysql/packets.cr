@@ -72,7 +72,8 @@ module MySql::Protocol
       packet.write_bytes caps, IO::ByteFormat::LittleEndian
 
       packet.write_bytes 0x00000000u32, IO::ByteFormat::LittleEndian
-      packet.write_byte 0x21u8 # utf8_general_ci
+      # packet.write_byte 0x21u8 # utf8_general_ci
+      packet.write_byte 0x2du8 # UTF8MB4_GENERAL_CI
       23.times { packet.write_byte 0_u8 }
 
       packet << @username

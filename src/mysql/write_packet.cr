@@ -1,6 +1,4 @@
-class MySql::WritePacket
-  include IO
-
+class MySql::WritePacket < IO
   def initialize(@io : IO, @connection : Connection)
   end
 

@@ -191,15 +191,15 @@ abstract struct MySql::Type
 
     def self.read(packet)
       pkt = packet.read_byte!
-      return ::Time::Span.new(0) if pkt < 1
+      return ::Time::Span.new(nanoseconds: 0) if pkt < 1
       negative = packet.read_byte!.to_i32
       days = packet.read_fixed_int(4)
       hour = packet.read_byte!.to_i32
       minute = packet.read_byte!.to_i32
       second = packet.read_byte!.to_i32
-      ms = pkt > 8 ? (packet.read_int.to_i32 / 1000) : nil
-      time = ms ? ::Time::Span.new(days, hour, minute, second, ms) : ::Time::Span.new(days, hour, minute, second)
-      negative > 0 ? (::Time::Span.new(0) - time) : time
+      ns = pkt > 8 ? (packet.read_int.to_i32 * 1000) : nil
+      time = ns ? ::Time::Span.new(days, hour, minute, second, nanoseconds: ns) : ::Time::Span.new(days, hour, minute, second)
+      negative > 0 ? (::Time::Span.new(nanoseconds: 0) - time) : time
     end
 
     def self.parse(str : ::String)
@@ -218,7 +218,7 @@ abstract struct MySql::Type
 
     def self.read(packet)
       pkt = packet.read_byte!
-      return ::Time.new(0) if pkt < 1
+      return ::Time.new(0, 0, 0) if pkt < 1
       year = packet.read_fixed_int(2).to_i32
       month = packet.read_byte!.to_i32
       day = packet.read_byte!.to_i32
@@ -227,12 +227,12 @@ abstract struct MySql::Type
       minute = packet.read_byte!.to_i32
       second = packet.read_byte!.to_i32
       return ::Time.new(year, month, day, hour, minute, second) if pkt < 8
-      ms = packet.read_int.to_i32 / 1000 # returns microseconds, time only supports milliseconds
-      return ::Time.new(year, month, day, hour, minute, second, ms)
+      ns = packet.read_int.to_i32 * 1000
+      return ::Time.new(year, month, day, hour, minute, second, nanosecond: ns)
     end
 
     def self.parse(str : ::String)
-      return ::Time.new(0) if str.starts_with?("0000-00-00")
+      return ::Time.new(0, 0, 0) if str.starts_with?("0000-00-00")
       begin
         begin
           ::Time.parse(str, "%F %H:%M:%S.%L")

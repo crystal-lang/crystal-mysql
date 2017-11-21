@@ -1,6 +1,4 @@
-class MySql::ReadPacket
-  include IO
-
+class MySql::ReadPacket < IO
   @length : Int32 = 0
   @remaining : Int32 = 0
   @seq : UInt8 = 0u8

@@ -34,7 +34,7 @@ DB::DriverSpecs(MySql::Any).run do
   sample_value Time.new(2016, 2, 15, 10, 15, 30), "datetime", "TIMESTAMP '2016-02-15 10:15:30.000'"
   sample_value Time.new(2016, 2, 15, 10, 15, 30), "timestamp", "TIMESTAMP '2016-02-15 10:15:30.000'"
   sample_value Time.new(2016, 2, 29), "date", "LAST_DAY('2016-02-15')", type_safe_value: false
-  sample_value Time::Span.new(0), "Time", "TIME('00:00:00')"
+  sample_value Time::Span.new(nanoseconds: 0), "Time", "TIME('00:00:00')"
   sample_value Time::Span.new(10, 25, 21), "Time", "TIME('10:25:21')"
   sample_value Time::Span.new(0, 0, 10, 5, 0), "Time", "TIME('00:10:05.000')"
 
@@ -42,15 +42,15 @@ DB::DriverSpecs(MySql::Any).run do
     # needs to check version, microsecond support >= 5.7
     dbversion = SemanticVersion.parse(db.scalar("SELECT VERSION();").as(String))
     if dbversion >= SemanticVersion.new(5, 7, 0)
-      sample_value Time.new(2016, 2, 15, 10, 15, 30, 543), "datetime(3)", "TIMESTAMP '2016-02-15 10:15:30.543'"
-      sample_value Time.new(2016, 2, 15, 10, 15, 30, 543), "timestamp(3)", "TIMESTAMP '2016-02-15 10:15:30.543'"
+      sample_value Time.new(2016, 2, 15, 10, 15, 30, nanosecond: 543_000_000), "datetime(3)", "TIMESTAMP '2016-02-15 10:15:30.543'"
+      sample_value Time.new(2016, 2, 15, 10, 15, 30, nanosecond: 543_000_000), "timestamp(3)", "TIMESTAMP '2016-02-15 10:15:30.543'"
     end
 
     # zero dates http://dev.mysql.com/doc/refman/5.7/en/datetime.html - work on some mysql not others,
     # NO_ZERO_IN_DATE enabled as part of strict mode in MySQL 5.7.8. - http://dev.mysql.com/doc/refman/5.7/en/sql-mode.html#sql-mode-changes
     mode = db.scalar("SELECT @@sql_mode").as(String)
     if !mode.match(/NO_ZERO_DATE/)
-      sample_value Time.new(0), "datetime", "TIMESTAMP '0000-00-00 00:00:00'"
+      sample_value Time.new(0, 0, 0), "datetime", "TIMESTAMP '0000-00-00 00:00:00'"
     end
   end
 

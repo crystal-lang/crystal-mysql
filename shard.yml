@@ -10,4 +10,6 @@ authors:
   - Juan Wajnerman <jwajnerman@manas.tech>
   - Brian J. Cardiff <bcardiff@manas.tech>
 
+crystal: 0.24.1
+
 license: MIT

@@ -49,13 +49,6 @@ DB::DriverSpecs(MySql::Any).run do
       sample_value Time::Span.new(0, 10, 15, 30, nanoseconds: 543_000_000), "Time(3)", "TIME '10:15:30.543'"
       sample_value Time::Span.new(0, 10, 15, 30, nanoseconds: 543_012_000), "Time(6)", "TIME '10:15:30.543012'"
     end
-
-    # zero dates http://dev.mysql.com/doc/refman/5.7/en/datetime.html - work on some mysql not others,
-    # NO_ZERO_IN_DATE enabled as part of strict mode in MySQL 5.7.8. - http://dev.mysql.com/doc/refman/5.7/en/sql-mode.html#sql-mode-changes
-    mode = db.scalar("SELECT @@sql_mode").as(String)
-    if !mode.match(/NO_ZERO_DATE/)
-      sample_value Time.new(0, 0, 0), "datetime", "TIMESTAMP '0000-00-00 00:00:00'"
-    end
   end
 
   ary = UInt8[0x41, 0x5A, 0x61, 0x7A]

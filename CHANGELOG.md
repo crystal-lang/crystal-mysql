@@ -1,3 +1,9 @@
+## v0.4.0 (2017-12-29)
+
+* Update to crystal-db ~> 0.5.0
+* Fix compatibility issues for crystal 0.24.1 (thanks @lipanski)
+  * Drop support for zero dates
+
 ## v0.3.3 (2017-11-08)
 
 * Fix release connection. (see [#35](https://github.com/crystal-lang/crystal-mysql/pull/35) and [#38](https://github.com/crystal-lang/crystal-mysql/pull/38), thanks @benoist)

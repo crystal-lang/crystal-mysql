@@ -186,39 +186,55 @@ abstract struct MySql::Type
       negative = v.to_i < 0 ? 1 : 0
       d = v.days
       raise ArgumentError.new("MYSQL TIME over 34 days cannot be saved - https://dev.mysql.com/doc/refman/5.7/en/time.html") if d > 34
-      packet.write_blob UInt8.slice(negative, d.to_i8, (d >> 8).to_i8, (d >> 16).to_i8, (d >> 24).to_i8, v.hours.to_i8, v.minutes.to_i8, v.seconds.to_i8, v.milliseconds*1000, v.milliseconds*1000/256, v.milliseconds*1000/65536)
+      microsecond = (v.nanoseconds / 1000).to_i32
+      packet.write_blob UInt8.slice(
+        negative, d.to_i8, (d >> 8).to_i8, (d >> 16).to_i8, (d >> 24).to_i8,
+        v.hours.to_i8, v.minutes.to_i8, v.seconds.to_i8,
+        (microsecond & 0x000000FF).to_u8,
+        ((microsecond & 0x0000FF00) >> 8).to_u8,
+        ((microsecond & 0x00FF0000) >> 16).to_u8,
+        ((microsecond & 0xFF000000) >> 24).to_u8
+      )
     end
 
     def self.read(packet)
       pkt = packet.read_byte!
-      return ::Time::Span.new(0) if pkt < 1
+      return ::Time::Span.new(nanoseconds: 0) if pkt < 1
       negative = packet.read_byte!.to_i32
       days = packet.read_fixed_int(4)
       hour = packet.read_byte!.to_i32
       minute = packet.read_byte!.to_i32
       second = packet.read_byte!.to_i32
-      ms = pkt > 8 ? (packet.read_int.to_i32 / 1000) : nil
-      time = ms ? ::Time::Span.new(days, hour, minute, second, ms) : ::Time::Span.new(days, hour, minute, second)
-      negative > 0 ? (::Time::Span.new(0) - time) : time
+      ns = pkt > 8 ? (packet.read_int.to_i32 * 1000) : nil
+      time = ns ? ::Time::Span.new(days, hour, minute, second, nanoseconds: ns) : ::Time::Span.new(days, hour, minute, second)
+      negative > 0 ? (::Time::Span.new(nanoseconds: 0) - time) : time
     end
 
     def self.parse(str : ::String)
       begin
-        time = ::Time.parse(str, "%H:%M:%S.%L")
+        time = ::Time.parse(str, "%H:%M:%S.%N")
       rescue
         time = ::Time.parse(str, "%H:%M:%S")
       end
-      ::Time::Span.new(time.hour, time.minute, time.second)
+      ::Time::Span.new(0, time.hour, time.minute, time.second, nanoseconds: time.nanosecond)
     end
   end
   decl_type DateTime, 0x0cu8, ::Time do
     def self.write(packet, v : ::Time)
-      packet.write_blob UInt8.slice(v.year.to_i16, v.year.to_i16/256, v.month.to_i8, v.day.to_i8, v.hour.to_i8, v.minute.to_i8, v.second.to_i8, v.millisecond*1000, v.millisecond*1000/256, v.millisecond*1000/65536)
+      microsecond = (v.nanosecond / 1000).to_i32
+      packet.write_blob UInt8.slice(
+        v.year.to_i16, v.year.to_i16/256, v.month.to_i8, v.day.to_i8,
+        v.hour.to_i8, v.minute.to_i8, v.second.to_i8,
+        (microsecond & 0x000000FF).to_u8,
+        ((microsecond & 0x0000FF00) >> 8).to_u8,
+        ((microsecond & 0x00FF0000) >> 16).to_u8,
+        ((microsecond & 0xFF000000) >> 24).to_u8
+      )
     end
 
     def self.read(packet)
       pkt = packet.read_byte!
-      return ::Time.new(0) if pkt < 1
+      return ::Time.new(0, 0, 0) if pkt < 1
       year = packet.read_fixed_int(2).to_i32
       month = packet.read_byte!.to_i32
       day = packet.read_byte!.to_i32
@@ -227,15 +243,15 @@ abstract struct MySql::Type
       minute = packet.read_byte!.to_i32
       second = packet.read_byte!.to_i32
       return ::Time.new(year, month, day, hour, minute, second) if pkt < 8
-      ms = packet.read_int.to_i32 / 1000 # returns microseconds, time only supports milliseconds
-      return ::Time.new(year, month, day, hour, minute, second, ms)
+      ns = packet.read_int.to_i32 * 1000
+      return ::Time.new(year, month, day, hour, minute, second, nanosecond: ns)
     end
 
     def self.parse(str : ::String)
-      return ::Time.new(0) if str.starts_with?("0000-00-00")
+      return ::Time.new(0, 0, 0) if str.starts_with?("0000-00-00")
       begin
         begin
-          ::Time.parse(str, "%F %H:%M:%S.%L")
+          ::Time.parse(str, "%F %H:%M:%S.%N")
         rescue
           ::Time.parse(str, "%F %H:%M:%S")
         end

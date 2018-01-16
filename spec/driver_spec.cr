@@ -55,4 +55,11 @@ describe Driver do
       db.scalar("SELECT DATABASE()").should be_nil
     end
   end
+
+  it "should refuse connection if mysql is not available" do
+    expect_raises(DB::ConnectionRefused) do
+      # wrong port, hopefully not in use
+      DB.open "mysql://root@localhost:3307/"
+    end
+  end
 end

@@ -12,5 +12,5 @@ before_install:
   - while ! echo exit | nc localhost 3306; do sleep 5; done # wait mysql to start accepting connections
   - sleep 15
 script:
-  - crystal spec
+  - DATABASE_HOST=localhost crystal spec
   - crystal tool format --check

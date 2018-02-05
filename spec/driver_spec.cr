@@ -12,7 +12,7 @@ describe Driver do
   it "should connect with credentials" do
     with_db do |db|
       db.scalar("SELECT DATABASE()").should be_nil
-      db.scalar("SELECT CURRENT_USER()").should match(/^root@(localhost|%)$/)
+      db.scalar("SELECT CURRENT_USER()").should match(/^root@/)
 
       # ensure user is deleted
       db.exec "GRANT USAGE ON *.* TO crystal_test IDENTIFIED BY 'secret'"
@@ -27,9 +27,9 @@ describe Driver do
       db.exec "FLUSH PRIVILEGES"
     end
 
-    DB.open "mysql://crystal_test:secret@localhost/crystal_mysql_test" do |db|
+    DB.open "mysql://crystal_test:secret@#{database_host}/crystal_mysql_test" do |db|
       db.scalar("SELECT DATABASE()").should eq("crystal_mysql_test")
-      db.scalar("SELECT CURRENT_USER()").should match(/^crystal_test@(localhost|%)$/)
+      db.scalar("SELECT CURRENT_USER()").should match(/^crystal_test@/)
     end
 
     with_db do |db|

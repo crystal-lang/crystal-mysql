@@ -28,8 +28,8 @@ class MySql::Connection < DB::Connection
       read_ok_or_err do |packet, status|
         raise "packet #{status} not implemented"
       end
-    rescue Errno
-      raise DB::ConnectionRefused.new
+    rescue ex : Errno
+      raise DB::ConnectionRefused.new(cause: ex, message: ex.message)
     end
   end
 

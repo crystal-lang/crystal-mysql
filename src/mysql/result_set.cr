@@ -88,6 +88,18 @@ class MySql::ResultSet < DB::ResultSet
     end
   end
 
+  # In order not to break existing functionality expecting strings, we only
+  # apply the binary check if bytes are requested in the read method call
+  def read(t : Bytes.class)
+    val = read
+
+    if val.is_a?(String) && @columns[@column_index - 1].character_set == 63
+      val.to_slice
+    else
+      val
+    end
+  end
+
   def read(t : Bool.class)
     MySql::Type.from_mysql(read.as(Int8))
   end

@@ -217,4 +217,21 @@ DB::DriverSpecs(MySql::Any).run do
       end
     end
   end
+
+  it "allows VARBINARY fields to be read as slices" do |db|
+    db.exec %(create table if not exists btest (b varbinary(16) not null);)
+    db.exec %(insert into btest (b) values (X'5a5a5a');)
+
+    DB.open db.uri do |db|
+      begin
+        db.query("select b from btest") do |rs|
+          rs.each do
+            rs.read(Bytes).should eq Bytes.new(3, 90_u8)
+          end
+        end
+      rescue e
+        fail("Expected no exception, but got \"#{e.message}\"")
+      end
+    end
+  end
 end

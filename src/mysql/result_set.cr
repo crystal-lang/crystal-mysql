@@ -90,13 +90,15 @@ class MySql::ResultSet < DB::ResultSet
 
   # In order not to break existing functionality expecting strings, we only
   # apply the binary check if bytes are requested in the read method call
-  def read(t : Bytes.class)
+  def read(t : (Bytes | (Bytes | Nil)).class)
     val = read
 
-    if val.is_a?(String) && @columns[@column_index - 1].character_set == 63
+    if !val
+      nil
+    elsif val.is_a?(String | Bytes)
       val.to_slice
     else
-      val
+      raise "#{self.class}#read returned a #{val.class}. A #{t} was expected."
     end
   end
 

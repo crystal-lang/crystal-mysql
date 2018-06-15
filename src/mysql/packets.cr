@@ -115,4 +115,10 @@ module MySql::Protocol
       end
     end
   end
+
+  struct Quit
+    def write(packet : MySql::WritePacket)
+      packet.write_byte 1_u8
+    end
+  end
 end

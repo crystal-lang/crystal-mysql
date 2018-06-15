@@ -30,10 +30,11 @@ DB::DriverSpecs(MySql::Any).run do
   sample_value "hello", "varchar(25)", "'hello'"
   sample_value 1.5_f32, "float", "1.5", type_safe_value: false
   sample_value 1.5, "double", "1.5"
-  sample_value Time.new(2016, 2, 15), "datetime", "TIMESTAMP '2016-02-15 00:00:00.000'"
-  sample_value Time.new(2016, 2, 15, 10, 15, 30), "datetime", "TIMESTAMP '2016-02-15 10:15:30.000'"
-  sample_value Time.new(2016, 2, 15, 10, 15, 30), "timestamp", "TIMESTAMP '2016-02-15 10:15:30.000'"
-  sample_value Time.new(2016, 2, 29), "date", "LAST_DAY('2016-02-15')", type_safe_value: false
+  sample_value Time.utc(2016, 2, 15), "datetime", "TIMESTAMP '2016-02-15 00:00:00.000'"
+  sample_value Time.utc(2016, 2, 15, 10, 15, 30), "datetime", "TIMESTAMP '2016-02-15 10:15:30.000'"
+  sample_value Time.utc(2016, 2, 15, 10, 15, 30), "timestamp", "TIMESTAMP '2016-02-15 10:15:30.000'"
+  sample_value Time.new(2016, 2, 15, 7, 15, 30, location: Time::Location.fixed("fixed", -3*3600)), "timestamp", "'2016-02-15 10:15:30.000'", type_safe_value: false
+  sample_value Time.utc(2016, 2, 29), "date", "LAST_DAY('2016-02-15')", type_safe_value: false
   sample_value Time::Span.new(nanoseconds: 0), "Time", "TIME('00:00:00')"
   sample_value Time::Span.new(10, 25, 21), "Time", "TIME('10:25:21')"
   sample_value Time::Span.new(0, 0, 10, 5, 0), "Time", "TIME('00:10:05.000')"
@@ -42,10 +43,10 @@ DB::DriverSpecs(MySql::Any).run do
     # needs to check version, microsecond support >= 5.7
     dbversion = SemanticVersion.parse(db.scalar("SELECT VERSION();").as(String))
     if dbversion >= SemanticVersion.new(5, 7, 0)
-      sample_value Time.new(2016, 2, 15, 10, 15, 30, nanosecond: 543_000_000), "datetime(3)", "TIMESTAMP '2016-02-15 10:15:30.543'"
-      sample_value Time.new(2016, 2, 15, 10, 15, 30, nanosecond: 543_012_000), "datetime(6)", "TIMESTAMP '2016-02-15 10:15:30.543012'"
-      sample_value Time.new(2016, 2, 15, 10, 15, 30, nanosecond: 543_000_000), "timestamp(3)", "TIMESTAMP '2016-02-15 10:15:30.543'"
-      sample_value Time.new(2016, 2, 15, 10, 15, 30, nanosecond: 543_012_000), "timestamp(6)", "TIMESTAMP '2016-02-15 10:15:30.543012'"
+      sample_value Time.utc(2016, 2, 15, 10, 15, 30, nanosecond: 543_000_000), "datetime(3)", "TIMESTAMP '2016-02-15 10:15:30.543'"
+      sample_value Time.utc(2016, 2, 15, 10, 15, 30, nanosecond: 543_012_000), "datetime(6)", "TIMESTAMP '2016-02-15 10:15:30.543012'"
+      sample_value Time.utc(2016, 2, 15, 10, 15, 30, nanosecond: 543_000_000), "timestamp(3)", "TIMESTAMP '2016-02-15 10:15:30.543'"
+      sample_value Time.utc(2016, 2, 15, 10, 15, 30, nanosecond: 543_012_000), "timestamp(6)", "TIMESTAMP '2016-02-15 10:15:30.543012'"
       sample_value Time::Span.new(0, 10, 15, 30, nanoseconds: 543_000_000), "Time(3)", "TIME '10:15:30.543'"
       sample_value Time::Span.new(0, 10, 15, 30, nanoseconds: 543_012_000), "Time(6)", "TIME '10:15:30.543012'"
     end

@@ -211,16 +211,18 @@ abstract struct MySql::Type
     end
 
     def self.parse(str : ::String)
+      # TODO replace parsing without using Time parser
       begin
-        time = ::Time.parse(str, "%H:%M:%S.%N")
+        time = ::Time.parse(str, "%H:%M:%S.%N", location: MySql::TIME_ZONE)
       rescue
-        time = ::Time.parse(str, "%H:%M:%S")
+        time = ::Time.parse(str, "%H:%M:%S", location: MySql::TIME_ZONE)
       end
       ::Time::Span.new(0, time.hour, time.minute, time.second, nanoseconds: time.nanosecond)
     end
   end
   decl_type DateTime, 0x0cu8, ::Time do
     def self.write(packet, v : ::Time)
+      v = v.in(location: MySql::TIME_ZONE)
       microsecond = (v.nanosecond / 1000).to_i32
       packet.write_blob UInt8.slice(
         v.year.to_i16, v.year.to_i16/256, v.month.to_i8, v.day.to_i8,
@@ -234,29 +236,29 @@ abstract struct MySql::Type
 
     def self.read(packet)
       pkt = packet.read_byte!
-      return ::Time.new(0, 0, 0) if pkt < 1
+      return ::Time.new(0, 0, 0, location: MySql::TIME_ZONE) if pkt < 1
       year = packet.read_fixed_int(2).to_i32
       month = packet.read_byte!.to_i32
       day = packet.read_byte!.to_i32
-      return ::Time.new(year, month, day) if pkt < 6
+      return ::Time.new(year, month, day, location: MySql::TIME_ZONE) if pkt < 6
       hour = packet.read_byte!.to_i32
       minute = packet.read_byte!.to_i32
       second = packet.read_byte!.to_i32
-      return ::Time.new(year, month, day, hour, minute, second) if pkt < 8
+      return ::Time.new(year, month, day, hour, minute, second, location: MySql::TIME_ZONE) if pkt < 8
       ns = packet.read_int.to_i32 * 1000
-      return ::Time.new(year, month, day, hour, minute, second, nanosecond: ns)
+      return ::Time.new(year, month, day, hour, minute, second, nanosecond: ns, location: MySql::TIME_ZONE)
     end
 
     def self.parse(str : ::String)
-      return ::Time.new(0, 0, 0) if str.starts_with?("0000-00-00")
+      return ::Time.new(0, 0, 0, location: MySql::TIME_ZONE) if str.starts_with?("0000-00-00")
       begin
         begin
-          ::Time.parse(str, "%F %H:%M:%S.%N")
+          ::Time.parse(str, "%F %H:%M:%S.%N", location: MySql::TIME_ZONE)
         rescue
-          ::Time.parse(str, "%F %H:%M:%S")
+          ::Time.parse(str, "%F %H:%M:%S", location: MySql::TIME_ZONE)
         end
       rescue
-        ::Time.parse(str, "%F")
+        ::Time.parse(str, "%F", location: MySql::TIME_ZONE)
       end
     end
   end

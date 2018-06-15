@@ -35,7 +35,14 @@ class MySql::Connection < DB::Connection
 
   def do_close
     super
-    @socket.close rescue nil
+
+    begin
+      write_packet do |packet|
+        Protocol::Quit.new.write(packet)
+      end
+      @socket.close
+    rescue
+    end
   end
 
   # :nodoc:

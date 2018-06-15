@@ -1,3 +1,8 @@
+## v0.5.0 (2018-06-15)
+
+* Fix compatibility issues for crystal 0.25.0
+* Send quit packet before closing connection ([#61](https://github.com/crystal-lang/crystal-mysql/pull/61), thanks @liuyang1204)
+
 ## v0.4.0 (2017-12-29)
 
 * Update to crystal-db ~> 0.5.0

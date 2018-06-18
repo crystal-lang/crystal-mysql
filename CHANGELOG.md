@@ -1,6 +1,7 @@
 ## v0.5.0 (2018-06-15)
 
-* Fix compatibility issues for crystal 0.25.0
+* Fix compatibility issues for crystal 0.25.0 ([#60](https://github.com/crystal-lang/crystal-mysql/pull/60))
+  * All the time instances are translated to UTC before saving them in the db
 * Send quit packet before closing connection ([#61](https://github.com/crystal-lang/crystal-mysql/pull/61), thanks @liuyang1204)
 
 ## v0.4.0 (2017-12-29)

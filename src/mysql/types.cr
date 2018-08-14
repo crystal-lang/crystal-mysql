@@ -1,4 +1,5 @@
 require "json"
+
 # :nodoc:
 abstract struct MySql::Type
   # Column types
@@ -324,7 +325,6 @@ abstract struct MySql::Type
 
   # Parse the JSON column type
   decl_type Json, 245_u8, JSON::Any do
-
     def self.write(packet, v : String)
       packet.write_lenenc_string v
     end

@@ -49,6 +49,7 @@ DB::DriverSpecs(MySql::Any).run do
       sample_value Time.utc(2016, 2, 15, 10, 15, 30, nanosecond: 543_012_000), "timestamp(6)", "TIMESTAMP '2016-02-15 10:15:30.543012'"
       sample_value Time::Span.new(0, 10, 15, 30, nanoseconds: 543_000_000), "Time(3)", "TIME '10:15:30.543'"
       sample_value Time::Span.new(0, 10, 15, 30, nanoseconds: 543_012_000), "Time(6)", "TIME '10:15:30.543012'"
+      sample_value "{\"example\": \"json\"}", "JSON", "'{\"example\": \"json\"}'"
     end
   end
 

@@ -60,6 +60,10 @@ abstract struct MySql::Type
     MySql::Type::Null
   end
 
+  def self.type_for(t : ::JSON::Any.class)
+    MySql::Type::Json
+  end
+
   def self.type_for(t)
     raise "MySql::Type does not support #{t} values"
   end
@@ -144,6 +148,7 @@ abstract struct MySql::Type
       nil
     end
   end
+
   decl_type Timestamp, 0x07u8, ::Time do
     def self.write(packet, v : ::Time)
       MySql::Type::DateTime.write(packet, v)
@@ -315,4 +320,24 @@ abstract struct MySql::Type
     end
   end
   decl_type Geometry, 0xffu8
+
+  # Parse the JSON column type
+  decl_type Json, 245_u8, String do
+
+    def self.write(packet, v : String)
+      packet.write_string v
+    end
+
+    def self.write(packet, v : ::JSON::Any)
+      packet.write_string v.to_json
+    end
+
+    def self.read(packet)
+      packet.read_string.lchop("\u0013")
+    end
+
+    def self.parse(str : ::String)
+      str
+    end
+  end
 end

@@ -80,12 +80,12 @@ class MySql::ReadPacket < IO
           elsif h == 0xfd
             read_byte!.to_i + (read_byte!.to_i << 8) + (read_byte!.to_i << 16)
           elsif h == 0xfe
-            read_bytes(Int64, IO::ByteFormat::LittleEndian)
+            read_bytes(UInt64, IO::ByteFormat::LittleEndian)
           else
             raise "Unexpected int length"
           end
 
-    res.to_i64
+    res.to_u64
   end
 
   def read_byte_array(length)

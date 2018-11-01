@@ -82,8 +82,8 @@ class MySql::Statement < DB::Statement
       when 255 # err packet
         conn.handle_err_packet(packet)
       when 0 # ok packet
-        affected_rows = packet.read_lenenc_int
-        last_insert_id = packet.read_lenenc_int
+        affected_rows = packet.read_lenenc_int.to_i64
+        last_insert_id = packet.read_lenenc_int.to_i64
         DB::ExecResult.new affected_rows, last_insert_id
       else
         MySql::ResultSet.new(self, packet.read_lenenc_int(header))

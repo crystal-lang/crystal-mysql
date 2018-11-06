@@ -23,7 +23,7 @@ class MySql::ReadPacket < IO
 
   def read(slice : Bytes)
     return 0 unless @remaining > 0
-    read_bytes = @io.read(slice)
+    read_bytes = @io.read_fully(slice)
     @remaining -= read_bytes
     read_bytes
   rescue IO::EOFError

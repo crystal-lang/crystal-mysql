@@ -6,7 +6,7 @@ class MySql::Connection < DB::Connection
     @socket = uninitialized TCPSocket
 
     begin
-      raise "no host provided" unless host = context.uri.hostname
+      host = context.uri.hostname || raise "no host provided"
       port = context.uri.port || 3306
       username = context.uri.user
       password = context.uri.password

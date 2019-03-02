@@ -15,11 +15,8 @@ describe Driver do
       db.scalar("SELECT CURRENT_USER()").should match(/^#{database_user}@/)
 
       # ensure user is deleted
-      db.exec "SET GLOBAL validate_password.length = 6"
-      db.exec "SET GLOBAL validate_password.number_count = 0"
-      db.exec "SET GLOBAL validate_password.policy=LOW"
       db.exec "DROP USER IF EXISTS crystal_test"
-      db.exec "CREATE USER crystal_test IDENTIFIED WITH mysql_native_password BY 'secret'"
+      db.exec "CREATE USER crystal_test IDENTIFIED WITH mysql_native_password BY 'Secret123!'"
       db.exec "GRANT USAGE ON *.* TO crystal_test"
       db.exec "DROP USER crystal_test"
       db.exec "DROP DATABASE IF EXISTS crystal_mysql_test"
@@ -28,12 +25,12 @@ describe Driver do
       # create test db with user
       db.exec "CREATE DATABASE crystal_mysql_test"
       db.exec "DROP USER IF EXISTS 'crystal_test'@'#{database_host}'"
-      db.exec "CREATE USER 'crystal_test'@'#{database_host}' IDENTIFIED WITH mysql_native_password BY 'secret'"
+      db.exec "CREATE USER 'crystal_test'@'#{database_host}' IDENTIFIED WITH mysql_native_password BY 'Secret123!'"
       db.exec "GRANT ALL PRIVILEGES ON crystal_mysql_test.* TO 'crystal_test'@'#{database_host}'"
       db.exec "FLUSH PRIVILEGES"
     end
 
-    DB.open "mysql://crystal_test:secret@#{database_host}/crystal_mysql_test" do |db|
+    DB.open "mysql://crystal_test:Secret123!@#{database_host}/crystal_mysql_test" do |db|
       db.scalar("SELECT DATABASE()").should eq("crystal_mysql_test")
       db.scalar("SELECT CURRENT_USER()").should match(/^crystal_test@/)
     end

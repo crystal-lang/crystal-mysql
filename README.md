@@ -72,7 +72,7 @@ FLUSH PRIVILEGES;
 quit
 ```
 
-Then use the example above changing the DB.open line to
+Then use the example above changing the `DB.open` line to
 
 ```crystal
 DB.open "mysql://test:yourpassword@localhost/test" do |db|

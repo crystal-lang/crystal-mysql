@@ -58,3 +58,22 @@ DB.open "mysql://root@localhost/test" do |db|
   end
 end
 ```
+
+When running this example, if you get the following exception:
+
+> Unhandled exception: Client does not support authentication protocol requested by server; consider upgrading MySQL client (Exception)
+
+You have two options, set a password for root, or (most recommended option) create another user with access to `test` database.
+
+```mysql
+CREATE USER 'test'@'localhost' IDENTIFIED WITH mysql_native_password BY 'yourpassword';
+GRANT ALL PRIVILEGES ON test.* TO 'test'@'localhost' WITH GRANT OPTION;
+FLUSH PRIVILEGES;
+quit
+```
+
+Then use the example above changing the DB.open line to
+
+```crystal
+DB.open "mysql://test:yourpassword@localhost/test" do |db|
+```

@@ -58,3 +58,6 @@ DB.open "mysql://root@localhost/test" do |db|
   end
 end
 ```
+#### Time Zone
+To change the time zone that this library uses (defaults to UTC), set a DB_TIME_ZONE env var to the desired location.  
+Example: `DB_TIME_ZONE="Europe/Berlin"`

@@ -12,6 +12,10 @@ module MySql
 
   alias Any = DB::Any | Int16 | Int8 | Time::Span
 
+  def self.time_zone
+    ENV.has_key?("DB_TIME_ZONE") ? Time::Location.load(ENV["DB_TIME_ZONE"]) : Time::Location::UTC
+  end
+
   # :nodoc:
-  TIME_ZONE = Time::Location::UTC
+  TIME_ZONE = MySql.time_zone
 end

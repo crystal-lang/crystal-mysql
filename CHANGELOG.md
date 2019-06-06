@@ -1,3 +1,13 @@
+## v0.6.0 (2019-04-18)
+
+* Fix compatibility issues for crystal 0.28.0 ([#73](https://github.com/crystal-lang/crystal-mysql/pull/73))
+* Fix connection to IPv6 hosts ([#69](https://github.com/crystal-lang/crystal-mysql/pull/69), thanks @j8r)
+
+## v0.5.1 (2018-11-06)
+
+* Fix `read_lenenc_int` return `UInt64`.
+* Add missing `IO#read_fully` when reading slice. ([#45](https://github.com/crystal-lang/crystal-mysql/pull/45), thanks @pacuum).
+
 ## v0.5.0 (2018-06-15)
 
 * Fix compatibility issues for crystal 0.25.0 ([#60](https://github.com/crystal-lang/crystal-mysql/pull/60))

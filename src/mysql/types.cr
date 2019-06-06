@@ -92,6 +92,11 @@ abstract struct MySql::Type
   end
 
   # :nodoc:
+  def self.to_mysql(v : ::UUID)
+    v.to_s
+  end
+
+  # :nodoc:
   def self.to_mysql(v : Bool)
     v ? 1i8 : 0i8
   end

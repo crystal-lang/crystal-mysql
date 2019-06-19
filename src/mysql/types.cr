@@ -1,3 +1,5 @@
+require "uuid"
+
 # :nodoc:
 abstract struct MySql::Type
   # Column types

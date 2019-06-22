@@ -97,8 +97,8 @@ abstract struct MySql::Type
   end
 
   # :nodoc:
-  def self.from_mysql(v : Int8)
-    v != 0i8
+  def self.from_mysql(v : Int) : Bool
+    v != 0
   end
 
   macro decl_type(name, value, db_any_type = nil)

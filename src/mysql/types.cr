@@ -97,7 +97,7 @@ abstract struct MySql::Type
   end
 
   # :nodoc:
-  def self.from_mysql(v : Int) : Bool
+  def self.from_mysql(v : Int::Signed) : Bool
     v != 0
   end
 

@@ -222,4 +222,12 @@ DB::DriverSpecs(MySql::Any).run do
       end
     end
   end
+
+  it "should convert an EXISTS result to a Bool" do |db|
+    db.exec "create table data (id int not null primary key auto_increment, name varchar(25));"
+    db.exec %(insert into data (name) values ("foo");)
+
+    db.query_one("SELECT EXISTS(SELECT 1 FROM data WHERE id = ?);", 1, as: Bool).should be_true
+    db.query_one("SELECT EXISTS(SELECT 1 FROM data WHERE id = ?);", 2, as: Bool).should be_false
+  end
 end

@@ -11,7 +11,6 @@ module MySql
   end
 
   alias Any = DB::Any | Int16 | Int8 | Time::Span
-  alias Int = Int8 | Int16 | Int32 | Int64 | Int128
 
   # :nodoc:
   TIME_ZONE = Time::Location::UTC

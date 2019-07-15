@@ -222,6 +222,14 @@ DB::DriverSpecs(MySql::Any).run do
     end
   end
 
+  it "should convert an EXISTS result to a Bool" do |db|
+    db.exec "create table data (id int not null primary key auto_increment, name varchar(25));"
+    db.exec %(insert into data (name) values ("foo");)
+
+    db.query_one("SELECT EXISTS(SELECT 1 FROM data WHERE id = ?);", 1, as: Bool).should be_true
+    db.query_one("SELECT EXISTS(SELECT 1 FROM data WHERE id = ?);", 2, as: Bool).should be_false
+  end
+
   it "can write uuids" do |db|
     db.exec %(create table if not exists uuid_test (id int not null, uuid binary(16) not null);)
     uuid = UUID.new("87b3042b-9b9a-41b7-8b15-a93d3f17025e")
@@ -245,5 +253,4 @@ DB::DriverSpecs(MySql::Any).run do
         uuid_returned = rs.read(UUID)
       end
     end
-  end
 end

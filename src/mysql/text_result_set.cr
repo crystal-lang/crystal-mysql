@@ -92,11 +92,11 @@ class MySql::TextResultSet < DB::ResultSet
   end
 
   def read(t : Bool.class)
-    MySql::Type.from_mysql(read.as(Int8))
+    MySql::Type.from_mysql(read.as(Int::Signed))
   end
 
   def read(t : (Bool | Nil).class)
-    if v = read.as(Int8 | Nil)
+    if v = read.as(Int::Signed?)
       MySql::Type.from_mysql(v)
     else
       nil

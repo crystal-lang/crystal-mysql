@@ -1,3 +1,8 @@
+## v0.7.0 (2019-07-03)
+
+* Support implicit conversion from integer types to Bool ([#78](https://github.com/crystal-lang/crystal-mysql/pull/78), thanks @Blacksmoke16)
+* Improve docs. ([#71](https://github.com/crystal-lang/crystal-mysql/pull/71), thanks @fernandes)
+
 ## v0.6.0 (2019-04-18)
 
 * Fix compatibility issues for crystal 0.28.0 ([#73](https://github.com/crystal-lang/crystal-mysql/pull/73))

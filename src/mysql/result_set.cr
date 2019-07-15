@@ -88,6 +88,23 @@ class MySql::ResultSet < DB::ResultSet
     end
   end
 
+  def read(t : UUID.class)
+    row_packet = @row_packet.not_nil!
+    is_nil = @null_bitmap[@column_index + 2]
+    col = @column_index
+    @column_index += 1
+
+    if is_nil
+      nil
+    elsif @columns[col].flags.bits_set?(128)
+      # Check if binary flag is set
+      # https://dev.mysql.com/doc/dev/mysql-server/latest/group__group__cs__column__definition__flags.html#gaf74577f0e38eed5616a090965aeac323
+      UUID.new row_packet.read_blob
+    else
+      UUID.new @columns[col].column_type.read(row_packet).as(String)
+    end
+  end
+
   def read(t : Bool.class)
     MySql::Type.from_mysql(read.as(Int8))
   end

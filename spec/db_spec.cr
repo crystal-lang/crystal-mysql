@@ -58,7 +58,6 @@ DB::DriverSpecs(MySql::Any).run do
 
   ary = UInt8[0x41, 0x5A, 0x61, 0x7A]
   sample_value Bytes.new(ary.to_unsafe, ary.size), "BLOB", "X'415A617A'", type_safe_value: false
-
   [
     {"TINYBLOB", 10},
     {"BLOB", 1000},
@@ -220,6 +219,31 @@ DB::DriverSpecs(MySql::Any).run do
           fail("Expected no exception, but got \"#{e.message}\"")
         end
       end
+    end
+  end
+
+  it "can write uuids" do |db|
+    db.exec %(create table if not exists uuid_test (id int not null, uuid binary(16) not null);)
+    uuid = UUID.new("87b3042b-9b9a-41b7-8b15-a93d3f17025e")
+    sql = %(insert into uuid_test set id=33, uuid = ?)
+    db.exec(sql, uuid)
+    db.query_all(%(select uuid from uuid_test where id=33)) do |rs|
+      uuid_returned = rs.read(UUID)
+      uuid_returned.should eq uuid
+      uuid_returned.to_s.should eq "87b3042b-9b9a-41b7-8b15-a93d3f17025e"
+    end
+  end
+
+  it "raises error when uuid column is not binary" do |db|
+    db.exec %(create table if not exists uuid_test (id int not null, uuid TEXT(36) not null);)
+
+    uuid = UUID.new("87b3042b-9b9a-41b7-8b15-a93d3f17025e")
+    sql = %(insert into uuid_test set id=34, uuid = ?)
+    db.exec(sql, uuid)
+    db.query_all(%(select uuid from uuid_test where id=34)) do |rs|
+      uuid_returned = rs.read(UUID)
+      uuid_returned.should eq uuid
+      uuid_returned.to_s.should eq "87b3042b-9b9a-41b7-8b15-a93d3f17025e"
     end
   end
 end

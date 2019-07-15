@@ -244,13 +244,13 @@ DB::DriverSpecs(MySql::Any).run do
 
   it "raises error when uuid column is not binary" do |db|
     db.exec %(create table if not exists uuid_test (id int not null, uuid TEXT(36) not null);)
-
-    uuid = UUID.new("87b3042b-9b9a-41b7-8b15-a93d3f17025e")
-    sql = %(insert into uuid_test set id=34, uuid = ?)
-    db.exec(sql, uuid)
-    db.query_all(%(select uuid from uuid_test where id=34)) do |rs|
-      expect_raises Exception do
+    expect_raises Exception do
+      uuid = UUID.new("87b3042b-9b9a-41b7-8b15-a93d3f17025e")
+      sql = %(insert into uuid_test set id=34, uuid = ?)
+      db.exec(sql, uuid)
+      db.query_all(%(select uuid from uuid_test where id=34)) do |rs|
         uuid_returned = rs.read(UUID)
       end
     end
+  end
 end

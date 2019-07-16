@@ -231,7 +231,7 @@ DB::DriverSpecs(MySql::Any).run do
     db.query_one("SELECT EXISTS(SELECT 1 FROM data WHERE id = ?);", 2, as: Bool).should be_false
   end
 
-  it "can write uuids" do |db|
+  it "can read/write uuids" do |db|
     db.exec %(create table if not exists uuid_test (id int not null, uuid binary(16) not null);)
     uuid = UUID.new("87b3042b-9b9a-41b7-8b15-a93d3f17025e")
     sql = %(insert into uuid_test set id=33, uuid = ?)

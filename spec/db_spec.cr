@@ -243,12 +243,23 @@ DB::DriverSpecs(MySql::Any).run do
     end
   end
 
-  it "raises error on write when uuid column is not binary" do |db|
+  it "raises error on write when uuid column is not binary for >= 5.7" do |db|
     db.exec %(create table if not exists uuid_test (id int not null, uuid TEXT(36) not null);)
-    expect_raises Exception do
-      uuid = UUID.new("87b3042b-9b9a-41b7-8b15-a93d3f17025e")
-      sql = %(insert into uuid_test set id=34, uuid = ?)
+    uuid = UUID.new("87b3042b-9b9a-41b7-8b15-a93d3f17025e")
+    sql = %(insert into uuid_test set id=34, uuid = ?)
+
+    dbversion = SemanticVersion.parse(db.scalar("SELECT VERSION();").as(String))
+    if dbversion >= SemanticVersion.new(5, 7, 0)
+      expect_raises Exception do
+        db.exec(sql, uuid)
+      end
+    else
       db.exec(sql, uuid)
+      db.query_all(%(select uuid from uuid_test where id=33)) do |rs|
+        uuid_returned = rs.read(UUID)
+        uuid_returned.should eq uuid
+        uuid_returned.to_s.should eq "87b3042b-9b9a-41b7-8b15-a93d3f17025e"
+      end
     end
   end
 end

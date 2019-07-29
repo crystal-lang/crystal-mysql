@@ -30,7 +30,7 @@ class MySql::ReadPacket < IO
     raise DB::ConnectionLost.new(@connection)
   end
 
-  def write(slice)
+  def write(slice) : Nil
     raise "not implemented"
   end
 

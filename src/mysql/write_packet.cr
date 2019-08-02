@@ -6,7 +6,7 @@ class MySql::WritePacket < IO
     raise "not implemented"
   end
 
-  def write(slice)
+  def write(slice) : Nil
     @io.write(slice)
   rescue IO::EOFError
     raise DB::ConnectionLost.new(@connection)

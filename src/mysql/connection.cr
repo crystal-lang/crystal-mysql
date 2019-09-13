@@ -135,12 +135,12 @@ class MySql::Connection < DB::Connection
         org_name = packet.read_lenenc_string
         next_length = packet.read_lenenc_int # length of fixed-length fields, always 0x0c
         raise "Unexpected next_length value: #{next_length}." unless next_length == 0x0c
-        character_set = packet.read_fixed_int(2).to_u16
-        column_length = packet.read_fixed_int(4).to_u32
-        column_type = packet.read_fixed_int(1).to_u8
-        flags = packet.read_fixed_int(2).to_u16
-        decimal = packet.read_fixed_int(1).to_u8
-        filler = packet.read_fixed_int(2).to_u16 # filler [00] [00]
+        character_set = packet.read_fixed_int(2).to_u16!
+        column_length = packet.read_fixed_int(4).to_u32!
+        column_type = packet.read_fixed_int(1).to_u8!
+        flags = packet.read_fixed_int(2).to_u16!
+        decimal = packet.read_fixed_int(1).to_u8!
+        filler = packet.read_fixed_int(2).to_u16! # filler [00] [00]
         raise "Unexpected filler value #{filler}" unless filler == 0x0000
 
         target << ColumnSpec.new(catalog, schema, table, org_table, name, org_name, character_set, column_length, column_type, flags, decimal)

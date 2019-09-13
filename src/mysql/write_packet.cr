@@ -19,7 +19,7 @@ class MySql::WritePacket < IO
 
   def write_lenenc_int(v)
     if v < 251
-      write_bytes(v.to_i8, IO::ByteFormat::LittleEndian)
+      write_bytes(v.to_u8, IO::ByteFormat::LittleEndian)
     elsif v < 65_536
       write_bytes(0xfc_u8, IO::ByteFormat::LittleEndian)
       write_bytes(v.to_u16, IO::ByteFormat::LittleEndian)

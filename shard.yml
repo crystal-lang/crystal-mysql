@@ -4,12 +4,12 @@ version: 0.8.0
 dependencies:
   db:
     github: crystal-lang/crystal-db
-    version: ~> 0.6.0
+    version: ~> 0.7.0
 
 authors:
   - Juan Wajnerman <jwajnerman@manas.tech>
   - Brian J. Cardiff <bcardiff@manas.tech>
 
-crystal: 0.25.0
+crystal: 0.30.0
 
 license: MIT

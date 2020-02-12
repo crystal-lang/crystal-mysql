@@ -1,3 +1,5 @@
+require "json"
+
 # :nodoc:
 abstract struct MySql::Type
   # Column types
@@ -58,6 +60,10 @@ abstract struct MySql::Type
 
   def self.type_for(t : ::Nil.class)
     MySql::Type::Null
+  end
+
+  def self.type_for(t : ::JSON::Any.class)
+    MySql::Type::Json
   end
 
   def self.type_for(t)
@@ -144,6 +150,7 @@ abstract struct MySql::Type
       nil
     end
   end
+
   decl_type Timestamp, 0x07u8, ::Time do
     def self.write(packet, v : ::Time)
       MySql::Type::DateTime.write(packet, v)
@@ -351,4 +358,28 @@ abstract struct MySql::Type
     end
   end
   decl_type Geometry, 0xffu8
+
+  # Parse the JSON column type
+  decl_type Json, 245_u8, JSON::Any do
+    def self.write(packet, v : String)
+      packet.write_lenenc_string v
+    end
+
+    def self.write(packet, v : ::JSON::Any)
+      packet.write_lenenc_string v.to_json
+    end
+
+    def self.read(packet)
+      str = packet.read_lenenc_string.lchop("\u0013")
+      JSON.parse(str)
+    rescue e
+      nil
+    end
+
+    def self.parse(str : ::String)
+      JSON.parse(str)
+    rescue e
+      nil
+    end
+  end
 end

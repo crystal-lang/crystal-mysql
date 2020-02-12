@@ -1,4 +1,5 @@
 require "db"
+require "json"
 require "./mysql/*"
 
 module MySql
@@ -10,7 +11,7 @@ module MySql
     end
   end
 
-  alias Any = DB::Any | Int16 | Int8 | Time::Span
+  alias Any = DB::Any | Int16 | Int8 | Time::Span | JSON::Any
 
   # :nodoc:
   TIME_ZONE = Time::Location::UTC

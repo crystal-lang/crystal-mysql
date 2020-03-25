@@ -38,11 +38,7 @@ DB::DriverSpecs(MySql::Any).run do
   sample_value Time.utc(2016, 2, 15), "datetime", "TIMESTAMP '2016-02-15 00:00:00.000'"
   sample_value Time.utc(2016, 2, 15, 10, 15, 30), "datetime", "TIMESTAMP '2016-02-15 10:15:30.000'"
   sample_value Time.utc(2016, 2, 15, 10, 15, 30), "timestamp", "TIMESTAMP '2016-02-15 10:15:30.000'"
-  {% if compare_versions(Crystal::VERSION, "0.28.0") >= 0 %}
-    sample_value Time.local(2016, 2, 15, 7, 15, 30, location: Time::Location.fixed("fixed", -3*3600)), "timestamp", "'2016-02-15 10:15:30.000'", type_safe_value: false
-  {% else %}
-    sample_value Time.new(2016, 2, 15, 7, 15, 30, location: Time::Location.fixed("fixed", -3*3600)), "timestamp", "'2016-02-15 10:15:30.000'", type_safe_value: false
-  {% end %}
+  sample_value Time.local(2016, 2, 15, 7, 15, 30, location: Time::Location.fixed("fixed", -3*3600)), "timestamp", "'2016-02-15 10:15:30.000'", type_safe_value: false
   sample_value Time.utc(2016, 2, 29), "date", "LAST_DAY('2016-02-15')", type_safe_value: false
   sample_value Time::Span.new(nanoseconds: 0), "Time", "TIME('00:00:00')"
   sample_value Time::Span.new(hours: 10, minutes: 25, seconds: 21), "Time", "TIME('10:25:21')"

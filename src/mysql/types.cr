@@ -211,7 +211,7 @@ abstract struct MySql::Type
       minute = packet.read_byte!.to_i32
       second = packet.read_byte!.to_i32
       ns = pkt > 8 ? (packet.read_int.to_i32 * 1000) : nil
-      time = ns ? ::Time::Span.new(days, hour, minute, second, nanoseconds: ns) : ::Time::Span.new(days, hour, minute, second)
+      time = ns ? ::Time::Span.new(days: days, hours: hour, minutes: minute, seconds: second, nanoseconds: ns) : ::Time::Span.new(days: days, hours: hour, minutes: minute, seconds: second)
       negative > 0 ? (::Time::Span.new(nanoseconds: 0) - time) : time
     end
 
@@ -222,7 +222,7 @@ abstract struct MySql::Type
       rescue
         time = ::Time.parse(str, "%H:%M:%S", location: MySql::TIME_ZONE)
       end
-      ::Time::Span.new(0, time.hour, time.minute, time.second, nanoseconds: time.nanosecond)
+      ::Time::Span.new(days: 0, hours: time.hour, minutes: time.minute, seconds: time.second, nanoseconds: time.nanosecond)
     end
   end
   decl_type DateTime, 0x0cu8, ::Time do

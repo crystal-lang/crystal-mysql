@@ -1,3 +1,8 @@
+## v0.11.0 (2020-04-06)
+
+* Update to crystal-db ~> 0.9.0. ([#88](https://github.com/crystal-lang/crystal-mysql/pull/88), thanks @bcardiff)
+* Fix readme sample. ([#87](https://github.com/crystal-lang/crystal-mysql/pull/87), thanks @drum445)
+
 ## v0.10.0 (2019-12-11)
 
 * Update to crystal-db ~> 0.8.0. ([#85](https://github.com/crystal-lang/crystal-mysql/pull/85))

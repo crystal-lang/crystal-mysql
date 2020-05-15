@@ -30,9 +30,15 @@ class MySql::ReadPacket < IO
     raise DB::ConnectionLost.new(@connection)
   end
 
-  def write(slice) : Nil
-    raise "not implemented"
-  end
+  {% if compare_versions(Crystal::VERSION, "0.35.0-0") >= 0 %}
+    def write(slice) : UInt64
+      raise "not implemented"
+    end
+  {% else %}
+    def write(slice) : Nil
+      raise "not implemented"
+    end
+  {% end %}
 
   def read_byte!
     read_byte || raise "Unexpected EOF"

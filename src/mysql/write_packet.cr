@@ -6,11 +6,19 @@ class MySql::WritePacket < IO
     raise "not implemented"
   end
 
-  def write(slice) : Nil
-    @io.write(slice)
-  rescue IO::EOFError
-    raise DB::ConnectionLost.new(@connection)
-  end
+  {% if compare_versions(Crystal::VERSION, "0.35.0-0") >= 0 %}
+    def write(slice) : UInt64
+      @io.write(slice)
+    rescue IO::EOFError
+      raise DB::ConnectionLost.new(@connection)
+    end
+  {% else %}
+    def write(slice) : Nil
+      @io.write(slice)
+    rescue IO::EOFError
+      raise DB::ConnectionLost.new(@connection)
+    end
+  {% end %}
 
   def write_lenenc_string(s : String)
     write_lenenc_int(s.bytesize)

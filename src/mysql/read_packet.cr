@@ -31,7 +31,7 @@ class MySql::ReadPacket < IO
   end
 
   {% if compare_versions(Crystal::VERSION, "0.35.0-0") >= 0 %}
-    def write(slice) : UInt64
+    def write(slice) : Int64
       raise "not implemented"
     end
   {% else %}

@@ -1,6 +1,12 @@
 require "socket"
 
 class MySql::Connection < DB::Connection
+  {% if compare_versions(Crystal::VERSION, "0.34.0-0") > 0 %}
+    alias IOErrorOrErrno = IO::Error
+  {% else %}
+    alias IOErrorOrErrno = Errno
+  {% end %}
+
   def initialize(context : DB::ConnectionContext)
     super(context)
     @socket = uninitialized TCPSocket
@@ -28,7 +34,7 @@ class MySql::Connection < DB::Connection
       read_ok_or_err do |packet, status|
         raise "packet #{status} not implemented"
       end
-    rescue Errno
+    rescue IOErrorOrErrno
       raise DB::ConnectionRefused.new
     end
   end
@@ -135,12 +141,12 @@ class MySql::Connection < DB::Connection
         org_name = packet.read_lenenc_string
         next_length = packet.read_lenenc_int # length of fixed-length fields, always 0x0c
         raise "Unexpected next_length value: #{next_length}." unless next_length == 0x0c
-        character_set = packet.read_fixed_int(2).to_u16
-        column_length = packet.read_fixed_int(4).to_u32
-        column_type = packet.read_fixed_int(1).to_u8
-        flags = packet.read_fixed_int(2).to_u16
-        decimal = packet.read_fixed_int(1).to_u8
-        filler = packet.read_fixed_int(2).to_u16 # filler [00] [00]
+        character_set = packet.read_fixed_int(2).to_u16!
+        column_length = packet.read_fixed_int(4).to_u32!
+        column_type = packet.read_fixed_int(1).to_u8!
+        flags = packet.read_fixed_int(2).to_u16!
+        decimal = packet.read_fixed_int(1).to_u8!
+        filler = packet.read_fixed_int(2).to_u16! # filler [00] [00]
         raise "Unexpected filler value #{filler}" unless filler == 0x0000
 
         target << ColumnSpec.new(catalog, schema, table, org_table, name, org_name, character_set, column_length, column_type, flags, decimal)
@@ -154,11 +160,11 @@ class MySql::Connection < DB::Connection
     end
   end
 
-  def build_prepared_statement(query)
+  def build_prepared_statement(query) : MySql::Statement
     MySql::Statement.new(self, query)
   end
 
-  def build_unprepared_statement(query)
+  def build_unprepared_statement(query) : MySql::UnpreparedStatement
     MySql::UnpreparedStatement.new(self, query)
   end
 end

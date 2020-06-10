@@ -89,6 +89,10 @@ class MySql::ResultSet < DB::ResultSet
   end
 
   def read(t : UUID.class)
+    read(UUID | Bool).as(UUID)
+  end
+
+  def read(t : (UUID | Bool).class)
     row_packet = @row_packet.not_nil!
     is_nil = @null_bitmap[@column_index + 2]
     col = @column_index

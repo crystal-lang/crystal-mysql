@@ -313,7 +313,7 @@ abstract struct MySql::Type
   end
   decl_type String, 0xfeu8, ::String do
     def self.write(packet, v : ::UUID)
-      packet.write_blob v.to_slice
+      packet.write_blob v.bytes.to_slice
     end
 
     def self.write(packet, v : ::String)

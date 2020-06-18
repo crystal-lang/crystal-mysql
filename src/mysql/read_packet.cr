@@ -30,7 +30,7 @@ class MySql::ReadPacket < IO
     raise DB::ConnectionLost.new(@connection)
   end
 
-  {% if compare_versions(Crystal::VERSION, "0.35.0-0") >= 0 %}
+  {% if compare_versions(Crystal::VERSION, "0.35.0") == 0 %}
     def write(slice) : Int64
       raise "not implemented"
     end

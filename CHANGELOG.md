@@ -1,3 +1,7 @@
+## v0.11.2 (2020-06-19)
+
+* Fix compatibility issues for Crystal 0.35.1. ([#92](https://github.com/crystal-lang/crystal-mysql/pull/92), thanks @bcardiff)
+
 ## v0.11.1 (2020-06-09)
 
 * Fix compatibility issues for Crystal 0.35.0. ([#90](https://github.com/crystal-lang/crystal-mysql/pull/90), thanks @bcardiff)

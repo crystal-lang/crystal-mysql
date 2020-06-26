@@ -6,7 +6,7 @@ class MySql::WritePacket < IO
     raise "not implemented"
   end
 
-  {% if compare_versions(Crystal::VERSION, "0.35.0-0") >= 0 %}
+  {% if compare_versions(Crystal::VERSION, "0.35.0") == 0 %}
     def write(slice) : Int64
       @io.write(slice)
     rescue IO::EOFError

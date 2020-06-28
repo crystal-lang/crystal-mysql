@@ -9,7 +9,7 @@ class MySql::Connection < DB::Connection
 
   def initialize(context : DB::ConnectionContext)
     super(context)
-    @socket = uninitialized TCPSocket
+    @socket = uninitialized TCPSocket | UNIXSocket
 
     begin
       host = context.uri.hostname || raise "no host provided"
@@ -24,7 +24,16 @@ class MySql::Connection < DB::Connection
         initial_catalog = nil
       end
 
-      @socket = TCPSocket.new(host, port)
+      if !context.uri.query.nil?
+        params = HTTP::Params.parse(context.uri.query.to_s)
+      end
+
+      if !params.nil? && params.has_key?("socket")
+        @socket = UNIXSocket.new(params["socket"])
+      else
+        @socket = TCPSocket.new(host, port)
+      end
+
       handshake = read_packet(Protocol::HandshakeV10)
 
       write_packet(1) do |packet|

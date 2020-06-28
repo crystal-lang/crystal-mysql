@@ -77,3 +77,12 @@ Then use the example above changing the `DB.open` line to
 ```crystal
 DB.open "mysql://test:yourpassword@localhost/test" do |db|
 ```
+
+## Unix Domain Socket
+
+If you specify a socket path, it will override the hostname in the URI.
+
+```crystal
+DB.open "mysql://root@localhost/test?socket=/tmp/mysql.sock" do |db|
+end
+```

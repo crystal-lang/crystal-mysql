@@ -1,7 +1,13 @@
+require "json"
+
 # :nodoc:
 abstract struct MySql::Type
   # Column types
   # http://dev.mysql.com/doc/internals/en/com-query-response.html#column-type
+
+  # Remove after https://github.com/crystal-lang/crystal/pull/3908 is accepted
+  alias JsonType = ::JSON::Type | Int32 | Array(Int32) | Hash(String, Int32)
+
 
   @@types_by_code = Hash(UInt8, MySql::Type.class).new
   @@hex_value : UInt8 = 0x00u8
@@ -58,6 +64,10 @@ abstract struct MySql::Type
 
   def self.type_for(t : ::Nil.class)
     MySql::Type::Null
+  end
+
+  def self.type_for(t : JsonType.class)
+    MySql::Type::JSON
   end
 
   def self.type_for(t)
@@ -316,6 +326,19 @@ abstract struct MySql::Type
 
     def self.parse(str : ::String)
       str
+    end
+  end
+  decl_type JSON, 0xf5u8, ::String do
+    def self.write(packet, v : JsonType)
+      packet.write_lenenc_string v.to_json
+    end
+
+    def self.read(packet)
+      JSON.parse packet.read_lenenc_string
+    end
+
+    def self.parse(str : ::String)
+      JSON.parse str
     end
   end
   decl_type Geometry, 0xffu8

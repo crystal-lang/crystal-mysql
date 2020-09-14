@@ -1,8 +1,8 @@
 class MySql::Statement < DB::Statement
   @statement_id : Int32
 
-  def initialize(connection, @sql : String)
-    super(connection)
+  def initialize(connection, command : String)
+    super(connection, command)
     @statement_id = 0
     params = @params = [] of ColumnSpec
     columns = @columns = [] of ColumnSpec
@@ -12,7 +12,7 @@ class MySql::Statement < DB::Statement
     # http://dev.mysql.com/doc/internals/en/com-stmt-prepare.html#packet-COM_STMT_PREPARE
     conn.write_packet do |packet|
       packet.write_byte 0x16u8
-      packet << @sql
+      packet << command
     end
 
     # http://dev.mysql.com/doc/internals/en/com-stmt-prepare-response.html

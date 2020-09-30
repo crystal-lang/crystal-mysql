@@ -1,6 +1,6 @@
 class MySql::UnpreparedStatement < DB::Statement
-  def initialize(connection, @sql : String)
-    super(connection)
+  def initialize(connection, command : String)
+    super(connection, command)
   end
 
   protected def conn
@@ -21,7 +21,7 @@ class MySql::UnpreparedStatement < DB::Statement
     conn = self.conn
     conn.write_packet do |packet|
       packet.write_byte 0x03u8
-      packet << @sql
+      packet << command
       # TODO to support args an interpolation needs to be done
     end
 

@@ -1,3 +1,9 @@
+## v0.12.0 (2020-09-30)
+
+* Update to crystal-db ~> 0.10.0. ([#95](https://github.com/crystal-lang/crystal-mysql/pull/95))
+
+This release requires Crystal 0.35.0 or later.
+
 ## v0.11.2 (2020-06-19)
 
 * Fix compatibility issues for Crystal 0.35.1. ([#92](https://github.com/crystal-lang/crystal-mysql/pull/92), thanks @bcardiff)

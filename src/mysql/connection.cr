@@ -1,12 +1,6 @@
 require "socket"
 
 class MySql::Connection < DB::Connection
-  {% if compare_versions(Crystal::VERSION, "0.34.0-0") > 0 %}
-    alias IOErrorOrErrno = IO::Error
-  {% else %}
-    alias IOErrorOrErrno = Errno
-  {% end %}
-
   def initialize(context : DB::ConnectionContext)
     super(context)
     @socket = uninitialized TCPSocket
@@ -34,7 +28,7 @@ class MySql::Connection < DB::Connection
       read_ok_or_err do |packet, status|
         raise "packet #{status} not implemented"
       end
-    rescue IOErrorOrErrno
+    rescue IO::Error
       raise DB::ConnectionRefused.new
     end
   end

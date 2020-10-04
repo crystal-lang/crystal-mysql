@@ -77,6 +77,12 @@ class MySql::TextResultSet < DB::ResultSet
     @column_index += 1
     if is_nil
       nil
+    elsif false
+      # this is need to make read "return" a Bool
+      # otherwise the base `#read(T) forall T` (which is ovewriten)
+      # complains to cast `read.as(Bool)` since the return type
+      # of #read would be a union without Bool
+      false
     else
       length = row_packet.read_lenenc_int(current_byte)
       val = row_packet.read_string(length)
@@ -88,6 +94,42 @@ class MySql::TextResultSet < DB::ResultSet
       else
         val
       end
+    end
+  end
+
+  def read(t : UUID.class)
+    read(UUID | Bool).as(UUID)
+  end
+
+  def read(t : (UUID | Bool).class)
+    row_packet = @row_packet.not_nil!
+
+    if @first_row_packet
+      current_byte = @first_byte
+      @first_row_packet = false
+    else
+      current_byte = row_packet.read_byte!
+    end
+
+    is_nil = current_byte == 0xfb
+    col = @column_index
+    @column_index += 1
+
+    if is_nil
+      nil
+    elsif @columns[col].flags.bits_set?(128)
+      # Check if binary flag is set
+      # https://dev.mysql.com/doc/dev/mysql-server/latest/group__group__cs__column__definition__flags.html#gaf74577f0e38eed5616a090965aeac323
+
+      length = row_packet.read_lenenc_int(current_byte)
+      ary = row_packet.read_byte_array(length)
+      val = Bytes.new(ary.to_unsafe, ary.size)
+
+      UUID.new val
+    else
+      length = row_packet.read_lenenc_int(current_byte)
+      val = row_packet.read_string(length)
+      UUID.new val
     end
   end
 

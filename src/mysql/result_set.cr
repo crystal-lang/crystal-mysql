@@ -63,7 +63,7 @@ class MySql::ResultSet < DB::ResultSet
     @columns[index].name
   end
 
-  def read
+  protected def mysql_read
     row_packet = @row_packet.not_nil!
 
     is_nil = @null_bitmap[@column_index + 2]
@@ -72,9 +72,17 @@ class MySql::ResultSet < DB::ResultSet
     if is_nil
       nil
     else
-      val = @columns[col].column_type.read(row_packet)
+      column = @columns[col]
+      yield row_packet, column
+    end
+  end
+
+  def read
+    mysql_read do |row_packet, column|
+      val = column.column_type.read(row_packet)
+
       # http://dev.mysql.com/doc/internals/en/character-set.html
-      if val.is_a?(Slice(UInt8)) && @columns[col].character_set != 63
+      if val.is_a?(Slice(UInt8)) && column.character_set != 63
         ::String.new(val)
       else
         val
@@ -83,19 +91,14 @@ class MySql::ResultSet < DB::ResultSet
   end
 
   def read(t : UUID.class)
-    row_packet = @row_packet.not_nil!
-    is_nil = @null_bitmap[@column_index + 2]
-    col = @column_index
-    @column_index += 1
-
-    if is_nil
-      nil
-    elsif @columns[col].flags.bits_set?(128)
-      # Check if binary flag is set
-      # https://dev.mysql.com/doc/dev/mysql-server/latest/group__group__cs__column__definition__flags.html#gaf74577f0e38eed5616a090965aeac323
-      UUID.new row_packet.read_blob
-    else
-      UUID.new @columns[col].column_type.read(row_packet).as(String)
+    mysql_read do |row_packet, column|
+      if column.flags.bits_set?(128)
+        # Check if binary flag is set
+        # https://dev.mysql.com/doc/dev/mysql-server/latest/group__group__cs__column__definition__flags.html#gaf74577f0e38eed5616a090965aeac323
+        UUID.new row_packet.read_blob
+      else
+        UUID.new column.column_type.read(row_packet).as(String)
+      end
     end
   end
 

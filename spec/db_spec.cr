@@ -244,6 +244,28 @@ DB::DriverSpecs(MySql::Any).run do
     end
   end
 
+  it "can read/write nillable uuids" do |db|
+    db.exec %(create table if not exists uuid_test (id int not null, uuid binary(16));)
+
+    uuid = UUID.new("87b3042b-9b9a-41b7-8b15-a93d3f17025e")
+    sql = %(insert into uuid_test set id=33, uuid = ?)
+    db.exec(sql, uuid)
+
+    sql = %(insert into uuid_test set id=44, uuid = ?)
+    db.exec(sql, nil)
+
+    db.query_all(%(select uuid from uuid_test where id=33)) do |rs|
+      uuid_returned = rs.read(UUID?)
+      uuid_returned.should eq uuid
+      uuid_returned.to_s.should eq "87b3042b-9b9a-41b7-8b15-a93d3f17025e"
+    end
+
+    db.query_all(%(select uuid from uuid_test where id=44)) do |rs|
+      uuid_returned = rs.read(UUID?)
+      uuid_returned.should be_nil
+    end
+  end
+
   it "raises error on write when uuid column is not binary for >= 5.7" do |db|
     db.exec %(create table if not exists uuid_test (id int not null, uuid TEXT(36) not null);)
     uuid = UUID.new("87b3042b-9b9a-41b7-8b15-a93d3f17025e")

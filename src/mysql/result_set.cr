@@ -91,6 +91,10 @@ class MySql::ResultSet < DB::ResultSet
   end
 
   def read(t : UUID.class)
+    read(UUID?).as(UUID)
+  end
+
+  def read(t : (UUID | Nil).class)
     mysql_read do |row_packet, column|
       if column.flags.bits_set?(128)
         # Check if binary flag is set

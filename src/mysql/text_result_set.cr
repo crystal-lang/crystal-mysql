@@ -113,7 +113,7 @@ class MySql::TextResultSet < DB::ResultSet
         UUID.new val
       else
         val = row_packet.read_string(length)
-        UUID.new val
+        raise ::DB::Error.new("The column #{column.name} of type #{column.column_type} returns a #{val.class} and can't be read as UUID")
       end
     end
   end

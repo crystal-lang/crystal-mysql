@@ -97,11 +97,13 @@ class MySql::ResultSet < DB::ResultSet
   def read(t : (UUID | Nil).class)
     mysql_read do |row_packet, column|
       if column.flags.bits_set?(128)
+        data = row_packet.read_blob
         # Check if binary flag is set
         # https://dev.mysql.com/doc/dev/mysql-server/latest/group__group__cs__column__definition__flags.html#gaf74577f0e38eed5616a090965aeac323
-        UUID.new row_packet.read_blob
+        UUID.new data
       else
-        UUID.new column.column_type.read(row_packet).as(String)
+        data = column.column_type.read(row_packet)
+        raise ::DB::Error.new("The column #{column.name} of type #{column.column_type} returns a #{data.class} and can't be read as UUID")
       end
     end
   end

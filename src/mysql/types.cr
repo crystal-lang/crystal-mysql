@@ -62,10 +62,6 @@ abstract struct MySql::Type
     MySql::Type::Null
   end
 
-  def self.type_for(t : ::UUID.class)
-    MySql::Type::String
-  end
-
   def self.type_for(t)
     raise "MySql::Type does not support #{t} values"
   end
@@ -100,6 +96,12 @@ abstract struct MySql::Type
   # :nodoc:
   def self.to_mysql(v : Bool)
     v ? 1i8 : 0i8
+  end
+
+  # :nodoc:
+  def self.to_mysql(v : ::UUID)
+    # v.bytes.to_slice is a Slice to a StaticArray, so it's stack allocated
+    v.bytes.to_slice.dup
   end
 
   # :nodoc:
@@ -312,10 +314,6 @@ abstract struct MySql::Type
     end
   end
   decl_type String, 0xfeu8, ::String do
-    def self.write(packet, v : ::UUID)
-      packet.write_blob v.bytes.to_slice
-    end
-
     def self.write(packet, v : ::String)
       packet.write_lenenc_string v
     end

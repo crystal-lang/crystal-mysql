@@ -43,6 +43,7 @@ DB::DriverSpecs(MySql::Any).run do
   sample_value Time::Span.new(nanoseconds: 0), "Time", "TIME('00:00:00')"
   sample_value Time::Span.new(hours: 10, minutes: 25, seconds: 21), "Time", "TIME('10:25:21')"
   sample_value Time::Span.new(days: 0, hours: 0, minutes: 10, seconds: 5, nanoseconds: 0), "Time", "TIME('00:10:05.000')"
+  sample_value UUID.new("87b3042b-9b9a-41b7-8b15-a93d3f17025e"), "BLOB", "X'87b3042b9b9a41b78b15a93d3f17025e'", type_safe_value: false
   sample_value UUID.new("87b3042b-9b9a-41b7-8b15-a93d3f17025e"), "binary(16)", %(UNHEX(REPLACE("87b3042b-9b9a-41b7-8b15-a93d3f17025e", "-",""))), type_safe_value: false
 
   DB.open db_url do |db|
@@ -233,23 +234,29 @@ DB::DriverSpecs(MySql::Any).run do
     db.query_one("SELECT EXISTS(SELECT 1 FROM data WHERE id = ?);", 2, as: Bool).should be_false
   end
 
-  it "raises error on write when uuid column is not binary for >= 5.7" do |db|
-    db.exec %(create table if not exists uuid_test (id int not null, uuid TEXT(36) not null);)
-    uuid = UUID.new("87b3042b-9b9a-41b7-8b15-a93d3f17025e")
-    sql = %(insert into uuid_test set id=34, uuid = ?)
+  it "should raise when reading UUID from text columns" do |db|
+    db.exec "create table data (id int not null primary key auto_increment, uuid_text varchar(36));"
+    db.exec %(insert into data (uuid_text) values ("87b3042b-9b9a-41b7-8b15-a93d3f17025e");)
 
-    dbversion = SemanticVersion.parse(db.scalar("SELECT VERSION();").as(String))
-    if dbversion >= SemanticVersion.new(5, 7, 0)
-      expect_raises Exception do
-        db.exec(sql, uuid)
-      end
-    else
-      db.exec(sql, uuid)
-      db.query_all(%(select uuid from uuid_test where id=33)) do |rs|
-        uuid_returned = rs.read(UUID)
-        uuid_returned.should eq uuid
-        uuid_returned.to_s.should eq "87b3042b-9b9a-41b7-8b15-a93d3f17025e"
-      end
+    expect_raises(DB::Error, "The column uuid_text of type MySql::Type::VarString returns a String and can't be read as UUID") do
+      db.prepared.query_one("SELECT uuid_text FROM data", as: UUID)
+    end
+
+    expect_raises(DB::Error, "The column uuid_text of type MySql::Type::VarString returns a String and can't be read as UUID") do
+      db.unprepared.query_one("SELECT uuid_text FROM data", as: UUID)
+    end
+  end
+
+  it "should raise when reading UUID from binary columns with invalid length" do |db|
+    db.exec "create table data (id int not null primary key auto_increment, uuid_blob blob);"
+    db.exec %(insert into data (uuid_blob) values (X'415A617A');)
+
+    expect_raises(ArgumentError, "Invalid bytes length 4, expected 16") do
+      db.prepared.query_one("SELECT uuid_blob FROM data", as: UUID)
+    end
+
+    expect_raises(ArgumentError, "Invalid bytes length 4, expected 16") do
+      db.unprepared.query_one("SELECT uuid_blob FROM data", as: UUID)
     end
   end
 end

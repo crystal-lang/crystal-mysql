@@ -71,12 +71,6 @@ class MySql::ResultSet < DB::ResultSet
     @column_index += 1
     if is_nil
       nil
-    elsif false
-      # this is need to make read "return" a Bool
-      # otherwise the base `#read(T) forall T` (which is ovewriten)
-      # complains to cast `read.as(Bool)` since the return type
-      # of #read would be a union without Bool
-      false
     else
       val = @columns[col].column_type.read(row_packet)
       # http://dev.mysql.com/doc/internals/en/character-set.html
@@ -89,10 +83,6 @@ class MySql::ResultSet < DB::ResultSet
   end
 
   def read(t : UUID.class)
-    read(UUID | Bool).as(UUID)
-  end
-
-  def read(t : (UUID | Bool).class)
     row_packet = @row_packet.not_nil!
     is_nil = @null_bitmap[@column_index + 2]
     col = @column_index

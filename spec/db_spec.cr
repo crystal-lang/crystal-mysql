@@ -43,6 +43,7 @@ DB::DriverSpecs(MySql::Any).run do
   sample_value Time::Span.new(nanoseconds: 0), "Time", "TIME('00:00:00')"
   sample_value Time::Span.new(hours: 10, minutes: 25, seconds: 21), "Time", "TIME('10:25:21')"
   sample_value Time::Span.new(days: 0, hours: 0, minutes: 10, seconds: 5, nanoseconds: 0), "Time", "TIME('00:10:05.000')"
+  sample_value UUID.new("87b3042b-9b9a-41b7-8b15-a93d3f17025e"), "binary(16)", %(UNHEX(REPLACE("87b3042b-9b9a-41b7-8b15-a93d3f17025e", "-",""))), type_safe_value: false
 
   DB.open db_url do |db|
     # needs to check version, microsecond support >= 5.7
@@ -230,40 +231,6 @@ DB::DriverSpecs(MySql::Any).run do
 
     db.query_one("SELECT EXISTS(SELECT 1 FROM data WHERE id = ?);", 1, as: Bool).should be_true
     db.query_one("SELECT EXISTS(SELECT 1 FROM data WHERE id = ?);", 2, as: Bool).should be_false
-  end
-
-  it "can read/write uuids" do |db|
-    db.exec %(create table if not exists uuid_test (id int not null, uuid binary(16) not null);)
-    uuid = UUID.new("87b3042b-9b9a-41b7-8b15-a93d3f17025e")
-    sql = %(insert into uuid_test set id=33, uuid = ?)
-    db.exec(sql, uuid)
-    db.query_all(%(select uuid from uuid_test where id=33)) do |rs|
-      uuid_returned = rs.read(UUID)
-      uuid_returned.should eq uuid
-      uuid_returned.to_s.should eq "87b3042b-9b9a-41b7-8b15-a93d3f17025e"
-    end
-  end
-
-  it "can read/write nillable uuids" do |db|
-    db.exec %(create table if not exists uuid_test (id int not null, uuid binary(16));)
-
-    uuid = UUID.new("87b3042b-9b9a-41b7-8b15-a93d3f17025e")
-    sql = %(insert into uuid_test set id=33, uuid = ?)
-    db.exec(sql, uuid)
-
-    sql = %(insert into uuid_test set id=44, uuid = ?)
-    db.exec(sql, nil)
-
-    db.query_all(%(select uuid from uuid_test where id=33)) do |rs|
-      uuid_returned = rs.read(UUID?)
-      uuid_returned.should eq uuid
-      uuid_returned.to_s.should eq "87b3042b-9b9a-41b7-8b15-a93d3f17025e"
-    end
-
-    db.query_all(%(select uuid from uuid_test where id=44)) do |rs|
-      uuid_returned = rs.read(UUID?)
-      uuid_returned.should be_nil
-    end
   end
 
   it "raises error on write when uuid column is not binary for >= 5.7" do |db|

@@ -50,6 +50,10 @@ abstract struct MySql::Type
     MySql::Type::Blob
   end
 
+  def self.type_for(t : ::StaticArray(T, N).class) forall T, N
+    MySql::Type::Blob
+  end
+
   def self.type_for(t : ::Time.class)
     MySql::Type::DateTime
   end
@@ -100,8 +104,7 @@ abstract struct MySql::Type
 
   # :nodoc:
   def self.to_mysql(v : ::UUID)
-    # v.bytes.to_slice is a Slice to a StaticArray, so it's stack allocated
-    v.bytes.to_slice.dup
+    v.bytes
   end
 
   # :nodoc:
@@ -290,6 +293,10 @@ abstract struct MySql::Type
   decl_type Blob, 0xfcu8, ::Bytes do
     def self.write(packet, v : ::Bytes)
       packet.write_blob v
+    end
+
+    def self.write(packet, v : ::StaticArray(T, N)) forall T, N
+      packet.write_blob v.to_slice
     end
 
     def self.read(packet)

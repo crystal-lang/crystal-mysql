@@ -62,7 +62,7 @@ class MySql::TextResultSet < DB::ResultSet
     @columns[index].name
   end
 
-  def read
+  protected def mysql_read
     row_packet = @row_packet.not_nil!
 
     if @first_row_packet
@@ -78,15 +78,42 @@ class MySql::TextResultSet < DB::ResultSet
     if is_nil
       nil
     else
+      column = @columns[col]
       length = row_packet.read_lenenc_int(current_byte)
+      yield row_packet, column, length
+    end
+  end
+
+  def read
+    mysql_read do |row_packet, column, length|
       val = row_packet.read_string(length)
-      val = @columns[col].column_type.parse(val)
+      val = column.column_type.parse(val)
 
       # http://dev.mysql.com/doc/internals/en/character-set.html
-      if val.is_a?(Slice(UInt8)) && @columns[col].character_set != 63
+      if val.is_a?(Slice(UInt8)) && column.character_set != 63
         ::String.new(val)
       else
         val
+      end
+    end
+  end
+
+  def read(t : UUID.class)
+    read(UUID?).as(UUID)
+  end
+
+  def read(t : (UUID | Nil).class)
+    mysql_read do |row_packet, column, length|
+      if column.flags.bits_set?(128)
+        # Check if binary flag is set
+        # https://dev.mysql.com/doc/dev/mysql-server/latest/group__group__cs__column__definition__flags.html#gaf74577f0e38eed5616a090965aeac323
+        ary = row_packet.read_byte_array(length)
+        val = Bytes.new(ary.to_unsafe, ary.size)
+
+        UUID.new val
+      else
+        val = row_packet.read_string(length)
+        raise ::DB::Error.new("The column #{column.name} of type #{column.column_type} returns a #{val.class} and can't be read as UUID")
       end
     end
   end

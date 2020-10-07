@@ -63,7 +63,7 @@ class MySql::ResultSet < DB::ResultSet
     @columns[index].name
   end
 
-  def read
+  protected def mysql_read
     row_packet = @row_packet.not_nil!
 
     is_nil = @null_bitmap[@column_index + 2]
@@ -71,19 +71,39 @@ class MySql::ResultSet < DB::ResultSet
     @column_index += 1
     if is_nil
       nil
-    elsif false
-      # this is need to make read "return" a Bool
-      # otherwise the base `#read(T) forall T` (which is ovewriten)
-      # complains to cast `read.as(Bool)` since the return type
-      # of #read would be a union without Bool
-      false
     else
-      val = @columns[col].column_type.read(row_packet)
+      column = @columns[col]
+      yield row_packet, column
+    end
+  end
+
+  def read
+    mysql_read do |row_packet, column|
+      val = column.column_type.read(row_packet)
+
       # http://dev.mysql.com/doc/internals/en/character-set.html
-      if val.is_a?(Slice(UInt8)) && @columns[col].character_set != 63
+      if val.is_a?(Slice(UInt8)) && column.character_set != 63
         ::String.new(val)
       else
         val
+      end
+    end
+  end
+
+  def read(t : UUID.class)
+    read(UUID?).as(UUID)
+  end
+
+  def read(t : (UUID | Nil).class)
+    mysql_read do |row_packet, column|
+      if column.flags.bits_set?(128)
+        data = row_packet.read_blob
+        # Check if binary flag is set
+        # https://dev.mysql.com/doc/dev/mysql-server/latest/group__group__cs__column__definition__flags.html#gaf74577f0e38eed5616a090965aeac323
+        UUID.new data
+      else
+        data = column.column_type.read(row_packet)
+        raise ::DB::Error.new("The column #{column.name} of type #{column.column_type} returns a #{data.class} and can't be read as UUID")
       end
     end
   end

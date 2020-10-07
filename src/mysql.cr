@@ -10,7 +10,7 @@ module MySql
     end
   end
 
-  alias Any = DB::Any | Int16 | Int8 | Time::Span
+  alias Any = DB::Any | Int16 | Int8 | Time::Span | UUID
 
   # :nodoc:
   TIME_ZONE = Time::Location::UTC

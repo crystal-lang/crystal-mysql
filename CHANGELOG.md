@@ -1,3 +1,7 @@
+## v0.13.0 (2021-01-26)
+
+* Add `UUID` support. ([#76](https://github.com/crystal-lang/crystal-mysql/pull/76), thanks @kalinon)
+
 ## v0.12.0 (2020-09-30)
 
 * Update to crystal-db ~> 0.10.0. ([#95](https://github.com/crystal-lang/crystal-mysql/pull/95))

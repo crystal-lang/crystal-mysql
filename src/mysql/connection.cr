@@ -22,7 +22,7 @@ class MySql::Connection < DB::Connection
       handshake = read_packet(Protocol::HandshakeV10)
 
       write_packet(1) do |packet|
-        Protocol::HandshakeResponse41.new(username, password, initial_catalog, handshake.auth_plugin_data).write(packet)
+        Protocol::HandshakeResponse41.new(username, password, initial_catalog, handshake.auth_plugin_data, handshake.charset).write(packet)
       end
 
       read_ok_or_err do |packet, status|

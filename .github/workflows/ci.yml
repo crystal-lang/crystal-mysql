@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+    branches: [master]
+  schedule:
+    - cron: '0 6 * * 1'  # Every monday 6 AM
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        crystal: [1.0.0, latest, nightly]
+        mysql: [5.6, 5.7]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Install Crystal
+        uses: crystal-lang/install-crystal@v1
+        with:
+          crystal: ${{ matrix.crystal }}
+
+      - name: Setup MySQL
+        uses: mirromutth/mysql-action@v1.1
+        with:
+          mysql version: ${{ matrix.mysql }}
+          mysql user: 'root'
+          mysql password: ''
+
+      - name: Download source
+        uses: actions/checkout@v2
+
+      - name: Run specs
+        run: crystal spec
+
+      - name: Check formatting
+        run: crystal tool format; git diff --exit-code
+        if: matrix.crystal == 'latest' && matrix.os == 'ubuntu-latest'

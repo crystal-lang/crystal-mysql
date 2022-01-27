@@ -14,7 +14,7 @@ jobs:
       matrix:
         os: [ubuntu-latest]
         crystal: [1.0.0, latest, nightly]
-        mysql_docker_image: [mysql:5.6, mysql:5.7]
+        mysql_docker_image: ["mysql:5.6", "mysql:5.7"]
     runs-on: ${{ matrix.os }}
     steps:
       - name: Install Crystal

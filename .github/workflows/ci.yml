@@ -14,7 +14,7 @@ jobs:
       matrix:
         os: [ubuntu-latest]
         crystal: [1.0.0, latest, nightly]
-        mysql: [5.6, 5.7]
+        mysql_docker_image: [mysql:5.6, mysql:5.7]
     runs-on: ${{ matrix.os }}
     steps:
       - name: Install Crystal
@@ -22,12 +22,14 @@ jobs:
         with:
           crystal: ${{ matrix.crystal }}
 
+      - name: Shutdown Ubuntu MySQL (SUDO)
+        run: sudo service mysql stop # Shutdown the Default MySQL, "sudo" is necessary, please not remove it
+
       - name: Setup MySQL
-        uses: mirromutth/mysql-action@v1.1
-        with:
-          mysql version: ${{ matrix.mysql }}
-          mysql user: 'root'
-          mysql password: ''
+        run: |
+          docker run -e MYSQL_ALLOW_EMPTY_PASSWORD=yes -p 3306:3306 -d ${{ matrix.mysql_docker_image }}
+          docker ps -a                                            # log docker image
+          while ! echo exit | nc localhost 3306; do sleep 5; done # wait mysql to start accepting connections
 
       - name: Download source
         uses: actions/checkout@v2

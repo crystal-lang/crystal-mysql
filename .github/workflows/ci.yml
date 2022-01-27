@@ -1,0 +1,45 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+    branches: [master]
+  schedule:
+    - cron: '0 6 * * 1'  # Every monday 6 AM
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        crystal: [1.0.0, latest, nightly]
+        mysql_docker_image: ["mysql:5.6", "mysql:5.7"]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Install Crystal
+        uses: crystal-lang/install-crystal@v1
+        with:
+          crystal: ${{ matrix.crystal }}
+
+      - name: Shutdown Ubuntu MySQL (SUDO)
+        run: sudo service mysql stop # Shutdown the Default MySQL, "sudo" is necessary, please not remove it
+
+      - name: Setup MySQL
+        run: |
+          docker run -e MYSQL_ALLOW_EMPTY_PASSWORD=yes -p 3306:3306 -d ${{ matrix.mysql_docker_image }}
+          docker ps -a                                            # log docker image
+          while ! echo exit | nc localhost 3306; do sleep 5; done # wait mysql to start accepting connections
+
+      - name: Download source
+        uses: actions/checkout@v2
+
+      - name: Install shards
+        run: shards install
+
+      - name: Run specs
+        run: crystal spec
+
+      - name: Check formatting
+        run: crystal tool format; git diff --exit-code
+        if: matrix.crystal == 'latest' && matrix.os == 'ubuntu-latest'

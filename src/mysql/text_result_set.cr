@@ -84,6 +84,10 @@ class MySql::TextResultSet < DB::ResultSet
     end
   end
 
+  def next_column_index : Int32
+    @column_index
+  end
+
   def read
     mysql_read do |row_packet, column, length|
       val = row_packet.read_string(length)

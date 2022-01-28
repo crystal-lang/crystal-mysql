@@ -1,3 +1,10 @@
+## v0.14.0 (2021-01-27)
+
+* Update to crystal-db ~> 0.11.0. ([#101](https://github.com/crystal-lang/crystal-mysql/pull/101))
+* Migrate CI to GitHub Actions. ([#102](https://github.com/crystal-lang/crystal-mysql/pull/102), thanks @bcardiff)
+
+This release requires Crystal 1.0.0 or later.
+
 ## v0.13.0 (2021-01-26)
 
 * Add `UUID` support. ([#76](https://github.com/crystal-lang/crystal-mysql/pull/76), thanks @kalinon)

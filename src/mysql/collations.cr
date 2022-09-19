@@ -9,7 +9,7 @@ module MySql::Collations
   #   SELECT ID, COLLATION_NAME FROM information_schema.COLLATIONS WHERE ID <= 255 ORDER BY ID;
   #
   # ucs2, utf16, and utf32 are excluded since they cannot be set as connection charset.
-  # https:#dev.mysql.com/doc/refman/5.7/en/charset-connection.html#charset-connection-impermissible-client-charset
+  # https://dev.mysql.com/doc/refman/5.7/en/charset-connection.html#charset-connection-impermissible-client-charset
   COLLATIONS_IDS_BY_NAME = {
     "big5_chinese_ci":      1,
     "latin2_czech_cs":      2,
@@ -153,7 +153,7 @@ module MySql::Collations
   }
 
   def self.default_collation
-    "utf8mb4_general_ci"
+    "utf8_general_ci"
   end
 
   def self.default_collation_id

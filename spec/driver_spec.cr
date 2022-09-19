@@ -39,6 +39,19 @@ describe Driver do
     end
   end
 
+  it "should connect with requested encoding" do
+    with_db do |db|
+      db.exec "DROP DATABASE IF EXISTS crystal_mysql_test"
+      db.exec "CREATE DATABASE crystal_mysql_test"
+
+      DB.open "mysql://crystal_test:secret@#{database_host}/crystal_mysql_test?encoding=utf8mb4_unicode_520_ci" do |db|
+        db.scalar("SELECT @@collation_connection").should eq("utf8mb4_unicode_520_ci")
+        db.scalar("SELECT @@character_set_connection").should eq("utf8mb4")
+      end
+      db.exec "DROP DATABASE IF EXISTS crystal_mysql_test"
+    end
+  end
+
   it "create and drop test database" do
     sql = "SELECT count(*) FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = 'crystal_mysql_test'"
 

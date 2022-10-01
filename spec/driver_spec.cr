@@ -30,11 +30,22 @@ describe Driver do
     DB.open "mysql://crystal_test:secret@#{database_host}/crystal_mysql_test" do |db|
       db.scalar("SELECT DATABASE()").should eq("crystal_mysql_test")
       db.scalar("SELECT CURRENT_USER()").should match(/^crystal_test@/)
-      db.scalar("SELECT @@collation_connection").should eq("utf8_general_ci")
-      db.scalar("SELECT @@character_set_connection").should eq("utf8")
     end
 
     with_db do |db|
+      db.exec "DROP DATABASE IF EXISTS crystal_mysql_test"
+    end
+  end
+
+  it "should connect with default encoding & collation for the connection set to utf8" do
+    with_db do |db|
+      db.exec "DROP DATABASE IF EXISTS crystal_mysql_test"
+      db.exec "CREATE DATABASE crystal_mysql_test"
+
+      DB.open "mysql://crystal_test:secret@#{database_host}/crystal_mysql_test" do |db|
+        db.scalar("SELECT @@collation_connection").should eq("utf8_general_ci")
+        db.scalar("SELECT @@character_set_connection").should eq("utf8")
+      end
       db.exec "DROP DATABASE IF EXISTS crystal_mysql_test"
     end
   end

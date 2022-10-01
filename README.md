@@ -90,5 +90,4 @@ Connection query params:
 
 - encoding: The collation & charset (character set) to use during the connection.
             If empty or not defined, it will be set to `utf8_general_ci`.
-            The list of available collations is defined in [MySql::Collations::COLLATIONS_IDS_BY_NAME](src/mysql/collations.cr).
-
+            The list of available collations is defined in [`MySql::Collations::COLLATIONS_IDS_BY_NAME`](src/mysql/collations.cr)

@@ -13,7 +13,7 @@ Also, going through the MySQL external library *blocks* the Crystal thread using
 
 ## Status
 
-This driver is a work in progress. 
+This driver is a work in progress.
 It implements mysql's binary protocol to create prepared statements.
 Contributions are most welcome.
 
@@ -77,3 +77,18 @@ Then use the example above changing the `DB.open` line to
 ```crystal
 DB.open "mysql://test:yourpassword@localhost/test" do |db|
 ```
+
+### Connection URI
+
+The connection string has the following syntax:
+
+```
+mysql://[user[:[password]]@]host[:port][/schema][?param1=value1&param2=value2
+```
+
+Connection query params:
+
+- encoding: The collation & charset (character set) to use during the connection.
+            If empty or not defined, it will be set to `utf8_general_ci`.
+            The list of available collations is defined in [MySql::Collations::COLLATIONS_IDS_BY_NAME](src/mysql/collations.cr).
+

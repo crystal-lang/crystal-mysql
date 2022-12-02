@@ -83,7 +83,7 @@ DB.open "mysql://test:yourpassword@localhost/test" do |db|
 The connection string has the following syntax:
 
 ```
-mysql://[user[:[password]]@]host[:port][/schema][?param1=value1&param2=value2
+mysql://[user[:[password]]@]host[:port][/schema][?param1=value1&param2=value2]
 ```
 
 Connection query params:

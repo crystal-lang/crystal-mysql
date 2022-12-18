@@ -156,14 +156,6 @@ module MySql::Collations
     "utf8_general_ci"
   end
 
-  def self.default_collation_id
-    id_for_collation default_collation
-  end
-
-  def self.default_charset
-    default_collation.split("_")[0]
-  end
-
   def self.id_for_collation(collation : String)
     return COLLATIONS_IDS_BY_NAME.fetch collation, 0
   end

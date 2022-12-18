@@ -1,7 +1,6 @@
 require "socket"
 
 class MySql::Connection < DB::Connection
-
   def initialize(context : DB::ConnectionContext)
     super(context)
     @socket = uninitialized TCPSocket

@@ -11,6 +11,9 @@ class MySql::Connection < DB::Connection
       username = context.uri.user
       password = context.uri.password
 
+      charset = context.uri.query_params.fetch "encoding", Collations.default_collation
+      charset_id = Collations.id_for_collation(charset).to_u8
+
       path = context.uri.path
       if path && path.size > 1
         initial_catalog = path[1..-1]
@@ -22,7 +25,7 @@ class MySql::Connection < DB::Connection
       handshake = read_packet(Protocol::HandshakeV10)
 
       write_packet(1) do |packet|
-        Protocol::HandshakeResponse41.new(username, password, initial_catalog, handshake.auth_plugin_data).write(packet)
+        Protocol::HandshakeResponse41.new(username, password, initial_catalog, handshake.auth_plugin_data, charset_id).write(packet)
       end
 
       read_ok_or_err do |packet, status|

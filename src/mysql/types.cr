@@ -285,6 +285,20 @@ abstract struct MySql::Type
       packet.read_lenenc_string.to_f64
     end
   end
+  decl_type Decimal, 0x00u8 do
+    def self.read(packet)
+      str = packet.read_lenenc_string
+      BigDecimal.new(str)
+    end
+
+    def self.write(packet, v : BigDecimal)
+      packet.write_lenenc_string v.to_s
+    end
+
+    def self.parse(str : ::String)
+      BigDecimal.new(str)
+    end
+  end
   decl_type Enum, 0xf7u8
   decl_type Set, 0xf8u8
   decl_type TinyBlob, 0xf9u8

@@ -5,7 +5,7 @@ require "semantic_version"
 private class NotSupportedType
 end
 
-DB::DriverSpecs(MySql::Any).run do
+DB::DriverSpecs(MySql::Any).run do |ctx|
   before do
     DB.open db_url do |db|
       db.exec "DROP DATABASE IF EXISTS crystal_mysql_test"
@@ -149,7 +149,7 @@ DB::DriverSpecs(MySql::Any).run do
     db.exec %(insert into a (i, str) values (23, "bai bai");)
 
     2.times do |i|
-      DB.open db.uri do |db|
+      DB.open ctx.connection_string do |db|
         begin
           db.query("SELECT i, str FROM a WHERE i = ?", 23) do |rs|
             rs.move_next
@@ -170,7 +170,7 @@ DB::DriverSpecs(MySql::Any).run do
 
   it "does not close a connection before cleaning up the result set" do |db|
     begin
-      DB.open db.uri do |db|
+      DB.open ctx.connection_string do |db|
         db.query("select 'foo'") do |rs|
           rs.each do
             rs.read(String)
@@ -189,7 +189,7 @@ DB::DriverSpecs(MySql::Any).run do
 
   it "does not close a connection before cleaning up the text result set" do |db|
     begin
-      DB.open db.uri do |db|
+      DB.open ctx.connection_string do |db|
         db.unprepared.query("select 'foo'") do |rs|
           rs.each do
             rs.read(String)
@@ -211,7 +211,7 @@ DB::DriverSpecs(MySql::Any).run do
     db.exec %(insert into a (i, str) values (23, "bai bai");)
 
     2.times do |i|
-      DB.open db.uri do |db|
+      DB.open ctx.connection_string do |db|
         begin
           db.unprepared.query("SELECT i, str FROM a WHERE i = 23") do |rs|
             rs.each do

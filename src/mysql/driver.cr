@@ -1,9 +1,16 @@
 class MySql::Driver < DB::Driver
-  def connection_builder(uri : URI) : Proc(::DB::Connection)
+  class ConnectionBuilder < ::DB::ConnectionBuilder
+    def initialize(@options : ::DB::Connection::Options, @mysql_options : MySql::Connection::Options)
+    end
+
+    def build : ::DB::Connection
+      MySql::Connection.new(@options, @mysql_options)
+    end
+  end
+
+  def connection_builder(uri : URI) : ::DB::ConnectionBuilder
     params = HTTP::Params.parse(uri.query || "")
-    options = connection_options(params)
-    mysql_options = MySql::Connection::Options.from_uri(uri)
-    ->{ MySql::Connection.new(options, mysql_options).as(::DB::Connection) }
+    ConnectionBuilder.new(connection_options(params), MySql::Connection::Options.from_uri(uri))
   end
 end
 

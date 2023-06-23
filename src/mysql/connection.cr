@@ -1,31 +1,46 @@
 require "socket"
 
 class MySql::Connection < DB::Connection
-  def initialize(context : DB::ConnectionContext)
-    super(context)
-    @socket = uninitialized TCPSocket
+  record Options,
+    host : String,
+    port : Int32,
+    username : String?,
+    password : String?,
+    initial_catalog : String?,
+    charset : String do
+    def self.from_uri(uri : URI) : Options
+      host = uri.hostname || raise "no host provided"
+      port = uri.port || 3306
+      username = uri.user
+      password = uri.password
 
-    begin
-      host = context.uri.hostname || raise "no host provided"
-      port = context.uri.port || 3306
-      username = context.uri.user
-      password = context.uri.password
+      charset = uri.query_params.fetch "encoding", Collations.default_collation
 
-      charset = context.uri.query_params.fetch "encoding", Collations.default_collation
-      charset_id = Collations.id_for_collation(charset).to_u8
-
-      path = context.uri.path
+      path = uri.path
       if path && path.size > 1
         initial_catalog = path[1..-1]
       else
         initial_catalog = nil
       end
 
-      @socket = TCPSocket.new(host, port)
+      Options.new(
+        host: host, port: port, username: username, password: password,
+        initial_catalog: initial_catalog, charset: charset)
+    end
+  end
+
+  def initialize(options : ::DB::Connection::Options, mysql_options : ::MySql::Connection::Options)
+    super(options)
+    @socket = uninitialized TCPSocket
+
+    begin
+      charset_id = Collations.id_for_collation(mysql_options.charset).to_u8
+
+      @socket = TCPSocket.new(mysql_options.host, mysql_options.port)
       handshake = read_packet(Protocol::HandshakeV10)
 
       write_packet(1) do |packet|
-        Protocol::HandshakeResponse41.new(username, password, initial_catalog, handshake.auth_plugin_data, charset_id).write(packet)
+        Protocol::HandshakeResponse41.new(mysql_options.username, mysql_options.password, mysql_options.initial_catalog, handshake.auth_plugin_data, charset_id).write(packet)
       end
 
       read_ok_or_err do |packet, status|

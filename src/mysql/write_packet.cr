@@ -3,7 +3,7 @@ class MySql::WritePacket < IO
   end
 
   def read(slice)
-    raise "not implemented"
+    raise NotImplementedError.new("not implemented")
   end
 
   {% if compare_versions(Crystal::VERSION, "0.35.0") == 0 %}

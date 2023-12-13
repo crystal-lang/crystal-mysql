@@ -12,8 +12,8 @@ class MySql::ReadPacket < IO
       io.read_fully(header.to_slice)
       @length = @remaining = header[0].to_i + (header[1].to_i << 8) + (header[2].to_i << 16)
       @seq = header[3]
-    rescue IO::EOFError
-      raise DB::ConnectionLost.new(@connection)
+    rescue e : IO::EOFError
+      raise DB::ConnectionLost.new(@connection, cause: e)
     end
   end
 
@@ -26,8 +26,8 @@ class MySql::ReadPacket < IO
     read_bytes = @io.read_fully(slice)
     @remaining -= read_bytes
     read_bytes
-  rescue IO::EOFError
-    raise DB::ConnectionLost.new(@connection)
+  rescue e : IO::EOFError
+    raise DB::ConnectionLost.new(@connection, cause: e)
   end
 
   {% if compare_versions(Crystal::VERSION, "0.35.0") == 0 %}

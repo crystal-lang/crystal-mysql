@@ -1,6 +1,10 @@
+## v0.16.0 (2023-12-21)
+
+* Update to crystal-db ~> 0.13.1. ([#112](https://github.com/crystal-lang/crystal-mysql/pull/112))
+
 ## v0.15.0 (2023-06-23)
 
-* Update to crystal-db ~> 0.12.0. ([#101](https://github.com/crystal-lang/crystal-mysql/pull/107))
+* Update to crystal-db ~> 0.12.0. ([#107](https://github.com/crystal-lang/crystal-mysql/pull/107))
 * Configure collation/charset using connection query params. ([#100](https://github.com/crystal-lang/crystal-mysql/pull/100), thanks @Dakad)
 
 ## v0.14.0 (2021-01-27)

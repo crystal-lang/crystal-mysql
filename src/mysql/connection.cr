@@ -3,21 +3,12 @@ require "socket"
 class MySql::Connection < DB::Connection
   class ConnectionError < Exception; end
 
-  class PacketError < ConnectionError
-    getter packet : ReadPacket
-
-    def initialize(packet, message)
-      @packet = packet
-      super(message)
-    end
-  end
-
-  class UnexpectedPacketError < PacketError
+  class UnexpectedPacketError < ConnectionError
     getter status : UInt8
 
-    def initialize(packet, status)
+    def initialize(status)
       @status = status
-      super(packet, "unexpected packet #{status}")
+      super("unexpected packet #{status}")
     end
   end
 
@@ -155,7 +146,7 @@ class MySql::Connection < DB::Connection
   # :nodoc:
   def raise_if_err_packet(packet)
     raise_if_err_packet(packet) do |status|
-      raise UnexpectedPacketError.new(packet, status)
+      raise UnexpectedPacketError.new(status)
     end
   end
 

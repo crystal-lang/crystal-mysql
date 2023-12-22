@@ -4,27 +4,28 @@ class MySql::Connection < DB::Connection
   class ConnectionError < Exception; end
 
   class PacketError < ConnectionError
-    getter :packet
+    getter packet : ReadPacket
 
-    def initialize(packet : ReadPacket, message)
+    def initialize(packet, message)
       @packet = packet
       super(message)
     end
   end
 
   class UnexpectedPacketError < PacketError
-    getter :status
+    getter status : UInt8
 
-    def initialize(packet, status : UInt8)
+    def initialize(packet, status)
       @status = status
       super(packet, "unexpected packet #{status}")
     end
   end
 
   class UnexpectedPacketValueError < ConnectionError
-    getter :attribute, :value
+    getter attribute : String
+    getter value : UInt64
 
-    def initialize(attribute : String, value : UInt64)
+    def initialize(attribute, value)
       @attribute = attribute
       @value = value
 

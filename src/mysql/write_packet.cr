@@ -3,7 +3,7 @@ class MySql::WritePacket < IO
   end
 
   def read(slice)
-    raise "not implemented"
+    raise NotImplementedError.new("not implemented")
   end
 
   def write(slice) : Nil

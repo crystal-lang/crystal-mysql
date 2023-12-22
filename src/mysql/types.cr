@@ -67,29 +67,29 @@ abstract struct MySql::Type
   end
 
   def self.type_for(t)
-    raise "MySql::Type does not support #{t} values"
+    raise NotImplementedError.new("MySql::Type does not support #{t} values")
   end
 
   def self.db_any_type
-    raise "not implemented"
+    raise NotImplementedError.new("not implemented")
   end
 
   # Writes in packet the value in ProtocolBinary format.
   # Used when sending query params.
   def self.write(packet, v)
-    raise "not supported write"
+    raise NotImplementedError.new("not supported write")
   end
 
   # Reads from packet a value in ProtocolBinary format of the type
   # specified by self.
   def self.read(packet)
-    raise "not supported read"
+    raise NotImplementedError.new("not supported read")
   end
 
   # Parse from str a value in TextProtocol format of the type
   # specified by self.
   def self.parse(str : ::String)
-    raise "not supported"
+    raise NotImplementedError.new("not supported")
   end
 
   # :nodoc:

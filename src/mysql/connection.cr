@@ -1,6 +1,29 @@
 require "socket"
 
 class MySql::Connection < DB::Connection
+  class ConnectionError < Exception; end
+
+  class UnexpectedPacketError < ConnectionError
+    getter status : UInt8
+
+    def initialize(status)
+      @status = status
+      super("unexpected packet #{status}")
+    end
+  end
+
+  class UnexpectedPacketValueError < ConnectionError
+    getter attribute : String
+    getter value : UInt64
+
+    def initialize(attribute, value)
+      @attribute = attribute
+      @value = value
+
+      super("unexpected value for #{attribute}: #{value}")
+    end
+  end
+
   record Options,
     host : String,
     port : Int32,
@@ -9,7 +32,7 @@ class MySql::Connection < DB::Connection
     initial_catalog : String?,
     charset : String do
     def self.from_uri(uri : URI) : Options
-      host = uri.hostname || raise "no host provided"
+      host = uri.hostname || raise ConnectionError.new("no host provided")
       port = uri.port || 3306
       username = uri.user
       password = uri.password
@@ -44,7 +67,7 @@ class MySql::Connection < DB::Connection
       end
 
       read_ok_or_err do |packet, status|
-        raise "packet #{status} not implemented"
+        raise NotImplementedError.new("packet #{status} not implemented")
       end
     rescue IO::Error
       raise DB::ConnectionRefused.new
@@ -117,13 +140,13 @@ class MySql::Connection < DB::Connection
   # :nodoc:
   def handle_err_packet(packet)
     8.times { packet.read_byte! }
-    raise packet.read_string
+    raise ConnectionError.new(packet.read_string)
   end
 
   # :nodoc:
   def raise_if_err_packet(packet)
     raise_if_err_packet(packet) do |status|
-      raise "unexpected packet #{status}"
+      raise UnexpectedPacketError.new(status)
     end
   end
 
@@ -152,14 +175,14 @@ class MySql::Connection < DB::Connection
         name = packet.read_lenenc_string
         org_name = packet.read_lenenc_string
         next_length = packet.read_lenenc_int # length of fixed-length fields, always 0x0c
-        raise "Unexpected next_length value: #{next_length}." unless next_length == 0x0c
+        raise UnexpectedPacketValueError.new("next_length", next_length) unless next_length == 0x0c
         character_set = packet.read_fixed_int(2).to_u16!
         column_length = packet.read_fixed_int(4).to_u32!
         column_type = packet.read_fixed_int(1).to_u8!
         flags = packet.read_fixed_int(2).to_u16!
         decimal = packet.read_fixed_int(1).to_u8!
         filler = packet.read_fixed_int(2).to_u16! # filler [00] [00]
-        raise "Unexpected filler value #{filler}" unless filler == 0x0000
+        raise UnexpectedPacketValueError.new("filler", filler) unless filler == 0x0000
 
         target << ColumnSpec.new(catalog, schema, table, org_table, name, org_name, character_set, column_length, column_type, flags, decimal)
       end

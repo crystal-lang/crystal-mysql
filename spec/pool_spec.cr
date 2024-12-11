@@ -14,7 +14,7 @@ describe DB::Pool do
         spawn do
           (1..max_n).each do |n|
             db.exec "insert into numbers (n, fiber) values (?, ?)", n, f
-            sleep 0.01
+            sleep 0.01.seconds
           end
           channel.send nil
         end
@@ -46,7 +46,7 @@ describe DB::Pool do
         spawn do
           cnn = db.checkout
           max_open_connections.max(db.pool.stats.open_connections)
-          sleep 0.01
+          sleep 0.01.seconds
           cnn.release
           channel.send nil
         end

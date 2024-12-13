@@ -48,8 +48,7 @@ DB::DriverSpecs(MySql::Any).run do |ctx|
 
   DB.open db_url do |db|
     # needs to check version, microsecond support >= 5.7
-    dbversion = SemanticVersion.parse(db.scalar("SELECT VERSION();").as(String))
-    if dbversion >= SemanticVersion.new(5, 7, 0)
+    if mysql_version(db) >= SemanticVersion.new(5, 7, 0)
       sample_value Time.utc(2016, 2, 15, 10, 15, 30, nanosecond: 543_000_000), "datetime(3)", "TIMESTAMP '2016-02-15 10:15:30.543'"
       sample_value Time.utc(2016, 2, 15, 10, 15, 30, nanosecond: 543_012_000), "datetime(6)", "TIMESTAMP '2016-02-15 10:15:30.543012'"
       sample_value Time.utc(2016, 2, 15, 10, 15, 30, nanosecond: 543_000_000), "timestamp(3)", "TIMESTAMP '2016-02-15 10:15:30.543'"

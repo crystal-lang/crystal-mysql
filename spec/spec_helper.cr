@@ -1,5 +1,6 @@
 require "spec"
 require "../src/mysql"
+require "semantic_version"
 
 include MySql
 
@@ -22,4 +23,9 @@ ensure
   DB.open db_url do |db|
     db.exec "DROP DATABASE IF EXISTS crystal_mysql_test"
   end
+end
+
+def mysql_version(db) : SemanticVersion
+  # some docker images might report 5.7.30-0ubuntu0.18.04.1, so we split in "-"
+  SemanticVersion.parse(db.scalar("SELECT VERSION();").as(String).split("-").first)
 end

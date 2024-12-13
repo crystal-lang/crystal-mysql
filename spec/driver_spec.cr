@@ -1,4 +1,5 @@
 require "./spec_helper"
+require "semantic_version"
 
 def with_db(&block : DB::Database ->)
   DB.open db_url, &block
@@ -15,8 +16,12 @@ describe Driver do
       db.scalar("SELECT CURRENT_USER()").should match(/^root@/)
 
       # ensure user is deleted
-      db.exec "GRANT USAGE ON *.* TO crystal_test IDENTIFIED BY 'secret'"
-      db.exec "DROP USER crystal_test"
+      if mysql_version(db) >= SemanticVersion.new(5, 7, 0)
+        db.exec "DROP USER IF EXISTS crystal_test"
+      else
+        db.exec "GRANT USAGE ON *.* TO crystal_test IDENTIFIED BY 'secret'"
+        db.exec "DROP USER crystal_test"
+      end
       db.exec "DROP DATABASE IF EXISTS crystal_mysql_test"
       db.exec "FLUSH PRIVILEGES"
 

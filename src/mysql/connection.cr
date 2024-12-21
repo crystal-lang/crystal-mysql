@@ -1,30 +1,40 @@
 require "socket"
 
 class MySql::Connection < DB::Connection
+  record UnixSocketTransport, path : Path
+  record TCPSocketTransport, host : String, port : Int32
+
   record Options,
-    host : String,
-    port : Int32,
+    transport : UnixSocketTransport | TCPSocketTransport,
     username : String?,
     password : String?,
     initial_catalog : String?,
     charset : String do
     def self.from_uri(uri : URI) : Options
-      host = uri.hostname || raise "no host provided"
-      port = uri.port || 3306
+      params = uri.query_params
+      initial_catalog = params["database"]?
+
+      if (host = uri.hostname) && !host.blank?
+        port = uri.port || 3306
+        transport = TCPSocketTransport.new(host: host, port: port)
+
+        # for tcp socket we support the first component to be the database
+        # but the query string takes presedence because it's more explicit
+        if initial_catalog.nil? && (path = uri.path) && path.size > 1
+          initial_catalog = path[1..-1]
+        end
+      else
+        transport = UnixSocketTransport.new(path: Path.new(uri.path))
+      end
+
       username = uri.user
       password = uri.password
 
-      charset = uri.query_params.fetch "encoding", Collations.default_collation
-
-      path = uri.path
-      if path && path.size > 1
-        initial_catalog = path[1..-1]
-      else
-        initial_catalog = nil
-      end
+      charset = params.fetch "encoding", Collations.default_collation
 
       Options.new(
-        host: host, port: port, username: username, password: password,
+        transport: transport,
+        username: username, password: password,
         initial_catalog: initial_catalog, charset: charset)
     end
   end
@@ -36,7 +46,14 @@ class MySql::Connection < DB::Connection
     begin
       charset_id = Collations.id_for_collation(mysql_options.charset).to_u8
 
-      @socket = TCPSocket.new(mysql_options.host, mysql_options.port)
+      @socket =
+        case transport = mysql_options.transport
+        when TCPSocketTransport
+          TCPSocket.new(mysql_options.host, mysql_options.port)
+        when UnixSocketTransport
+          raise "not implemented"
+        end
+
       handshake = read_packet(Protocol::HandshakeV10)
 
       write_packet(1) do |packet|

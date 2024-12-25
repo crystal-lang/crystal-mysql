@@ -32,7 +32,7 @@ describe Driver do
       db.exec "FLUSH PRIVILEGES"
     end
 
-    DB.open "mysql://crystal_test:secret@#{database_host}/crystal_mysql_test" do |db|
+    DB.open "mysql://crystal_test:secret@#{database_host}?database=crystal_mysql_test" do |db|
       db.scalar("SELECT DATABASE()").should eq("crystal_mysql_test")
       db.scalar("SELECT CURRENT_USER()").should match(/^crystal_test@/)
     end
@@ -48,7 +48,7 @@ describe Driver do
       db.exec "CREATE DATABASE crystal_mysql_test"
 
       # By default, the encoding for the  DB connection is set to utf8_general_ci
-      DB.open "mysql://crystal_test:secret@#{database_host}/crystal_mysql_test" do |db|
+      DB.open "mysql://crystal_test:secret@#{database_host}?database=crystal_mysql_test" do |db|
         db.scalar("SELECT @@collation_connection").should eq("utf8_general_ci")
         db.scalar("SELECT @@character_set_connection").should eq("utf8")
       end
@@ -61,7 +61,7 @@ describe Driver do
       db.exec "DROP DATABASE IF EXISTS crystal_mysql_test"
       db.exec "CREATE DATABASE crystal_mysql_test"
 
-      DB.open "mysql://crystal_test:secret@#{database_host}/crystal_mysql_test?encoding=utf8mb4_unicode_520_ci" do |db|
+      DB.open "mysql://crystal_test:secret@#{database_host}?database=crystal_mysql_test&encoding=utf8mb4_unicode_520_ci" do |db|
         db.scalar("SELECT @@collation_connection").should eq("utf8mb4_unicode_520_ci")
         db.scalar("SELECT @@character_set_connection").should eq("utf8mb4")
       end

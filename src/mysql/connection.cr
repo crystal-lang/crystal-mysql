@@ -24,7 +24,8 @@ class MySql::Connection < DB::Connection
           initial_catalog = path[1..-1]
         end
       else
-        transport = UnixSocketTransport.new(path: Path.new(uri.path))
+        # uri.path has a final / we want to drop
+        transport = UnixSocketTransport.new(path: Path.new(uri.path.chomp('/')))
       end
 
       username = uri.user
@@ -41,17 +42,17 @@ class MySql::Connection < DB::Connection
 
   def initialize(options : ::DB::Connection::Options, mysql_options : ::MySql::Connection::Options)
     super(options)
-    @socket = uninitialized TCPSocket
+    @socket = uninitialized UNIXSocket | TCPSocket
 
     begin
       charset_id = Collations.id_for_collation(mysql_options.charset).to_u8
 
       @socket =
         case transport = mysql_options.transport
-        when TCPSocketTransport
-          TCPSocket.new(mysql_options.host, mysql_options.port)
-        when UnixSocketTransport
-          raise "not implemented"
+        in TCPSocketTransport
+          TCPSocket.new(transport.host, transport.port)
+        in UnixSocketTransport
+          UNIXSocket.new(transport.path.to_s)
         end
 
       handshake = read_packet(Protocol::HandshakeV10)

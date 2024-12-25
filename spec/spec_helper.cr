@@ -5,7 +5,11 @@ require "semantic_version"
 include MySql
 
 def db_url(initial_db = nil)
-  "mysql://root@#{database_host}/#{initial_db}"
+  if initial_db
+    "mysql://root@#{database_host}?database=#{initial_db}"
+  else
+    "mysql://root@#{database_host}"
+  end
 end
 
 def database_host
@@ -18,7 +22,7 @@ def with_db(database_name, options = nil, &block : DB::Database ->)
     db.exec "CREATE DATABASE crystal_mysql_test"
   end
 
-  DB.open "#{db_url(database_name)}?#{options}", &block
+  DB.open "#{db_url(database_name)}&#{options}", &block
 ensure
   DB.open db_url do |db|
     db.exec "DROP DATABASE IF EXISTS crystal_mysql_test"

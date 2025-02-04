@@ -1,12 +1,69 @@
 require "socket"
+require "openssl"
 
 class MySql::Connection < DB::Connection
+  enum SSLMode
+    Disabled
+    Preferred
+    Required
+    VerifyCA
+    VerifyIdentity
+  end
+  record SSLOptions, mode : SSLMode, key : Path?, cert : Path?, ca : Path? do
+    def self.from_params(params : URI::Params)
+      mode =
+        case (params["ssl-mode"]?).try &.downcase
+        when nil
+          SSLMode::Preferred
+        when "preferred"
+          SSLMode::Preferred
+        when "disabled"
+          SSLMode::Disabled
+        when "required"
+          SSLMode::Required
+        when "verifyca", "verify-ca", "verify_ca"
+          SSLMode::VerifyCA
+        when "verifyidentity", "verify-identity", "verify_identity"
+          SSLMode::VerifyIdentity
+        else
+          raise ArgumentError.new(%(invalid "#{params["ssl-mode"]}" value for ssl-mode))
+        end
+
+      # NOTE: Passing paths prefixed with ~/ or ./ seems to not work with OpenSSL
+      # we we expand the provided path.
+      key = (params["ssl-key"]?).try { |v| Path[File.expand_path(v, home: true)] }
+      cert = (params["ssl-cert"]?).try { |v| Path[File.expand_path(v, home: true)] }
+      ca = (params["ssl-ca"]?).try { |v| Path[File.expand_path(v, home: true)] }
+
+      SSLOptions.new(mode: mode, key: key, cert: cert, ca: ca)
+    end
+
+    def build_context : OpenSSL::SSL::Context::Client
+      ctx = OpenSSL::SSL::Context::Client.new
+
+      ctx.verify_mode =
+        case mode
+        when SSLMode::VerifyCA, SSLMode::VerifyIdentity
+          OpenSSL::SSL::VerifyMode::PEER
+        else
+          OpenSSL::SSL::VerifyMode::NONE
+        end
+
+      ctx.certificate_chain = cert.to_s if cert = @cert
+      ctx.private_key = key.to_s if key = @key
+      ctx.ca_certificates = ca.to_s if ca = @ca
+
+      ctx
+    end
+  end
+
   record Options,
     transport : URI,
     username : String?,
     password : String?,
     initial_catalog : String?,
-    charset : String do
+    charset : String,
+    ssl_options : SSLOptions do
     def self.from_uri(uri : URI) : Options
       params = uri.query_params
       initial_catalog = params["database"]?
@@ -32,23 +89,26 @@ class MySql::Connection < DB::Connection
       Options.new(
         transport: transport,
         username: username, password: password,
-        initial_catalog: initial_catalog, charset: charset)
+        initial_catalog: initial_catalog, charset: charset,
+        ssl_options: SSLOptions.from_params(params)
+      )
     end
   end
 
   def initialize(options : ::DB::Connection::Options, mysql_options : ::MySql::Connection::Options)
     super(options)
-    @socket = uninitialized UNIXSocket | TCPSocket
+    @socket = uninitialized UNIXSocket | TCPSocket | OpenSSL::SSL::Socket::Client
 
     begin
       charset_id = Collations.id_for_collation(mysql_options.charset).to_u8
 
       transport = mysql_options.transport
+      hostname = nil
       @socket =
         case transport.scheme
         when "tcp"
-          host = transport.host || raise "Missing host in transport #{transport}"
-          TCPSocket.new(host, transport.port)
+          hostname = transport.host || raise "Missing host in transport #{transport}"
+          TCPSocket.new(hostname, transport.port)
         when "unix"
           UNIXSocket.new(transport.path)
         else
@@ -57,8 +117,25 @@ class MySql::Connection < DB::Connection
 
       handshake = read_packet(Protocol::HandshakeV10)
 
-      write_packet(1) do |packet|
-        Protocol::HandshakeResponse41.new(mysql_options.username, mysql_options.password, mysql_options.initial_catalog, handshake.auth_plugin_data, charset_id).write(packet)
+      handshake_response = Protocol::HandshakeResponse41.new(mysql_options.username, mysql_options.password, mysql_options.initial_catalog, handshake.auth_plugin_data, charset_id)
+      seq = 1
+
+      if mysql_options.ssl_options.mode != SSLMode::Disabled &&
+         # socket connection will not use ssl for preferred
+         !(transport.scheme == "unix" && mysql_options.ssl_options.mode == SSLMode::Preferred)
+        write_packet(seq) do |packet|
+          handshake_response.write_ssl_request(packet)
+        end
+        seq += 1
+        ctx = mysql_options.ssl_options.build_context
+        @socket = OpenSSL::SSL::Socket::Client.new(@socket, context: ctx, sync_close: true, hostname: hostname)
+        # NOTE: If ssl_options.mode is Preferred we should fallback to non-ssl socket if the ssl setup failed
+        # if we do so, we should warn at least. Making Preferred behave as Required is a safer option
+        # so the user would need to explicitly choose Disabled to avoid the ssl setup.
+      end
+
+      write_packet(seq) do |packet|
+        handshake_response.write(packet)
       end
 
       read_ok_or_err do |packet, status|

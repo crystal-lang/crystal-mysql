@@ -69,6 +69,18 @@ describe Driver do
     end
   end
 
+  it "should be able to connect without ssl" do
+    with_db nil, "ssl-mode=disabled" do |db|
+      db.scalar("SELECT VARIABLE_VALUE FROM performance_schema.session_status WHERE VARIABLE_NAME = 'Ssl_cipher'").should eq("")
+    end
+  end
+
+  it "should be able to connect with ssl" do
+    with_db nil, "ssl-mode=required" do |db|
+      db.scalar("SELECT VARIABLE_VALUE FROM performance_schema.session_status WHERE VARIABLE_NAME = 'Ssl_cipher'").should_not eq("")
+    end
+  end
+
   it "create and drop test database" do
     sql = "SELECT count(*) FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = 'crystal_mysql_test'"
 

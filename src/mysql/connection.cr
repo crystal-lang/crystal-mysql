@@ -1,11 +1,8 @@
 require "socket"
 
 class MySql::Connection < DB::Connection
-  record UnixSocketTransport, path : Path
-  record TCPSocketTransport, host : String, port : Int32
-
   record Options,
-    transport : UnixSocketTransport | TCPSocketTransport,
+    transport : URI,
     username : String?,
     password : String?,
     initial_catalog : String?,
@@ -16,7 +13,7 @@ class MySql::Connection < DB::Connection
 
       if (host = uri.hostname) && !host.blank?
         port = uri.port || 3306
-        transport = TCPSocketTransport.new(host: host, port: port)
+        transport = URI.new("tcp", host, port)
 
         # for tcp socket we support the first component to be the database
         # but the query string takes presedence because it's more explicit
@@ -24,8 +21,7 @@ class MySql::Connection < DB::Connection
           initial_catalog = path[1..-1]
         end
       else
-        # uri.path has a final / we want to drop
-        transport = UnixSocketTransport.new(path: Path.new(uri.path.chomp('/')))
+        transport = URI.new("unix", nil, nil, uri.path)
       end
 
       username = uri.user
@@ -47,12 +43,16 @@ class MySql::Connection < DB::Connection
     begin
       charset_id = Collations.id_for_collation(mysql_options.charset).to_u8
 
+      transport = mysql_options.transport
       @socket =
-        case transport = mysql_options.transport
-        in TCPSocketTransport
-          TCPSocket.new(transport.host, transport.port)
-        in UnixSocketTransport
-          UNIXSocket.new(transport.path.to_s)
+        case transport.scheme
+        when "tcp"
+          host = transport.host || raise "Missing host in transport #{transport}"
+          TCPSocket.new(host, transport.port)
+        when "unix"
+          UNIXSocket.new(transport.path)
+        else
+          raise "Transport not supported #{transport}"
         end
 
       handshake = read_packet(Protocol::HandshakeV10)

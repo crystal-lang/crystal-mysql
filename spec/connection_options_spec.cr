@@ -5,11 +5,11 @@ private def from_uri(uri)
 end
 
 private def tcp(host, port)
-  MySql::Connection::TCPSocketTransport.new(host: host, port: port)
+  URI.new("tcp", host, port)
 end
 
 private def socket(path)
-  MySql::Connection::UnixSocketTransport.new(path: Path.new(path))
+  URI.new("unix", nil, nil, path)
 end
 
 describe Connection::Options do

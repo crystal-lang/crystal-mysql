@@ -86,8 +86,29 @@ The connection string has the following syntax:
 mysql://[user[:[password]]@]host[:port][/schema][?param1=value1&param2=value2]
 ```
 
-Connection query params:
+#### Transport
 
-- encoding: The collation & charset (character set) to use during the connection.
+The driver supports tcp connection or unix sockets
+
+- `mysql://localhost` will connect using tcp and the default MySQL port 3306.
+- `mysql://localhost:8088` will connect using tcp using port 8088.
+- `mysql:///path/to/other.sock` will connect using unix socket `/path/to/other.sock`.
+
+Any of the above can be used with `user@` or `user:password@` to pass credentials.
+
+#### Default database
+
+A `database` query string will specify the default database. 
+Connection strings with a host can also use the first path component to specify the default database.
+Query string takes precedence because it's more explicit.
+
+- `mysql://localhost/mydb`
+- `mysql://localhost:3306/mydb`
+- `mysql://localhost:3306?database=mydb`
+- `mysql:///path/to/other.sock?database=mydb`
+
+#### Other query params
+
+- `encoding`: The collation & charset (character set) to use during the connection.
             If empty or not defined, it will be set to `utf8_general_ci`.
             The list of available collations is defined in [`MySql::Collations::COLLATIONS_IDS_BY_NAME`](src/mysql/collations.cr)

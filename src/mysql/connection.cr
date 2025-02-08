@@ -16,7 +16,7 @@ class MySql::Connection < DB::Connection
         transport = URI.new("tcp", host, port)
 
         # for tcp socket we support the first component to be the database
-        # but the query string takes presedence because it's more explicit
+        # but the query string takes precedence because it's more explicit
         if initial_catalog.nil? && (path = uri.path) && path.size > 1
           initial_catalog = path[1..-1]
         end

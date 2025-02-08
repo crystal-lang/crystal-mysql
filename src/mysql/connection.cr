@@ -64,7 +64,7 @@ class MySql::Connection < DB::Connection
   end
 
   # :nodoc:
-  def read_ok_or_err
+  def read_ok_or_err(&)
     read_packet do |packet|
       raise_if_err_packet(packet) do |status|
         yield packet, status
@@ -73,7 +73,7 @@ class MySql::Connection < DB::Connection
   end
 
   # :nodoc:
-  def read_packet
+  def read_packet(&)
     packet = build_read_packet
     begin
       yield packet
@@ -96,7 +96,7 @@ class MySql::Connection < DB::Connection
   end
 
   # :nodoc:
-  def write_packet(seq = 0)
+  def write_packet(seq = 0, &)
     content = IO::Memory.new
     yield WritePacket.new(content, self)
     bytesize = content.bytesize
@@ -128,7 +128,7 @@ class MySql::Connection < DB::Connection
   end
 
   # :nodoc:
-  def raise_if_err_packet(packet)
+  def raise_if_err_packet(packet, &)
     status = packet.read_byte!
     if status == 255
       handle_err_packet packet

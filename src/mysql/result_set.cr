@@ -63,7 +63,7 @@ class MySql::ResultSet < DB::ResultSet
     @columns[index].name
   end
 
-  protected def mysql_read
+  protected def mysql_read(&)
     row_packet = @row_packet.not_nil!
 
     is_nil = @null_bitmap[@column_index + 2]

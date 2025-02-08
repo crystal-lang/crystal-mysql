@@ -62,7 +62,7 @@ class MySql::TextResultSet < DB::ResultSet
     @columns[index].name
   end
 
-  protected def mysql_read
+  protected def mysql_read(&)
     row_packet = @row_packet.not_nil!
 
     if @first_row_packet

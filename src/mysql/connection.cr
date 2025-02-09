@@ -2,41 +2,59 @@ require "socket"
 
 class MySql::Connection < DB::Connection
   record Options,
-    host : String,
-    port : Int32,
+    transport : URI,
     username : String?,
     password : String?,
     initial_catalog : String?,
     charset : String do
     def self.from_uri(uri : URI) : Options
-      host = uri.hostname || raise "no host provided"
-      port = uri.port || 3306
+      params = uri.query_params
+      initial_catalog = params["database"]?
+
+      if (host = uri.hostname) && !host.blank?
+        port = uri.port || 3306
+        transport = URI.new("tcp", host, port)
+
+        # for tcp socket we support the first component to be the database
+        # but the query string takes precedence because it's more explicit
+        if initial_catalog.nil? && (path = uri.path) && path.size > 1
+          initial_catalog = path[1..-1]
+        end
+      else
+        transport = URI.new("unix", nil, nil, uri.path)
+      end
+
       username = uri.user
       password = uri.password
 
-      charset = uri.query_params.fetch "encoding", Collations.default_collation
-
-      path = uri.path
-      if path && path.size > 1
-        initial_catalog = path[1..-1]
-      else
-        initial_catalog = nil
-      end
+      charset = params.fetch "encoding", Collations.default_collation
 
       Options.new(
-        host: host, port: port, username: username, password: password,
+        transport: transport,
+        username: username, password: password,
         initial_catalog: initial_catalog, charset: charset)
     end
   end
 
   def initialize(options : ::DB::Connection::Options, mysql_options : ::MySql::Connection::Options)
     super(options)
-    @socket = uninitialized TCPSocket
+    @socket = uninitialized UNIXSocket | TCPSocket
 
     begin
       charset_id = Collations.id_for_collation(mysql_options.charset).to_u8
 
-      @socket = TCPSocket.new(mysql_options.host, mysql_options.port)
+      transport = mysql_options.transport
+      @socket =
+        case transport.scheme
+        when "tcp"
+          host = transport.host || raise "Missing host in transport #{transport}"
+          TCPSocket.new(host, transport.port)
+        when "unix"
+          UNIXSocket.new(transport.path)
+        else
+          raise "Transport not supported #{transport}"
+        end
+
       handshake = read_packet(Protocol::HandshakeV10)
 
       write_packet(1) do |packet|

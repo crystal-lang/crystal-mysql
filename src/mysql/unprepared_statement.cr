@@ -16,7 +16,7 @@ class MySql::UnpreparedStatement < DB::Statement
   end
 
   private def perform_exec_or_query(args : Enumerable)
-    raise "exec/query with args is not supported" if args.size > 0
+    raise NotImplementedError.new("exec/query with args is not supported") if args.size > 0
 
     conn = self.conn
     conn.write_packet do |packet|

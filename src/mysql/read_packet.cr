@@ -1,4 +1,8 @@
 class MySql::ReadPacket < IO
+  class EOFError < IO::EOFError; end
+
+  class UnexpectedIntLengthError < Exception; end
+
   @length : Int32 = 0
   @remaining : Int32 = 0
   @seq : UInt8 = 0u8
@@ -32,16 +36,16 @@ class MySql::ReadPacket < IO
 
   {% if compare_versions(Crystal::VERSION, "0.35.0") == 0 %}
     def write(slice) : Int64
-      raise "not implemented"
+      raise NotImplementedError.new("not implemented")
     end
   {% else %}
     def write(slice) : Nil
-      raise "not implemented"
+      raise NotImplementedError.new("not implemented")
     end
   {% end %}
 
   def read_byte!
-    read_byte || raise "Unexpected EOF"
+    read_byte || raise EOFError.new("Unexpected EOF")
   end
 
   def read_string
@@ -88,7 +92,7 @@ class MySql::ReadPacket < IO
           elsif h == 0xfe
             read_bytes(UInt64, IO::ByteFormat::LittleEndian)
           else
-            raise "Unexpected int length"
+            raise UnexpectedIntLengthError.new("Unexpected int length")
           end
 
     res.to_u64

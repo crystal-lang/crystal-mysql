@@ -109,7 +109,7 @@ Query string takes precedence because it's more explicit.
 
 #### Secure connections (SSL/TLS)
 
-By default a tcp conenction will stablish a secure connection, whether a unix socket will not.
+By default a tcp connection will establish a secure connection, whether a unix socket will not.
 
 You can tweak this default behaviour and require further validation of certificates using `ssl-mode` and the following query strings.
 

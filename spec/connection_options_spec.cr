@@ -174,9 +174,9 @@ describe Connection::SSLOptions do
     it "parses ssl-key, ssl-cert, ssl-ca" do
       ssl_from_params("ssl-key=path/to/key.pem&ssl-cert=path/to/cert.pem&ssl-ca=path/to/ca.pem").should eq(
         Connection::SSLOptions.new(mode: Connection::SSLMode::Preferred,
-          key: Path["path/to/key.pem"],
-          cert: Path["path/to/cert.pem"],
-          ca: Path["path/to/ca.pem"])
+          key: Path["path/to/key.pem"].expand(home: true),
+          cert: Path["path/to/cert.pem"].expand(home: true),
+          ca: Path["path/to/ca.pem"].expand(home: true))
       )
     end
 

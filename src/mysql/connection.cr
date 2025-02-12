@@ -20,9 +20,9 @@ class MySql::Connection < DB::Connection
 
       # NOTE: Passing paths prefixed with ~/ or ./ seems to not work with OpenSSL
       # we we expand the provided path.
-      key = (params["ssl-key"]?).try { |v| Path[File.expand_path(v, home: true)] }
-      cert = (params["ssl-cert"]?).try { |v| Path[File.expand_path(v, home: true)] }
-      ca = (params["ssl-ca"]?).try { |v| Path[File.expand_path(v, home: true)] }
+      key = (params["ssl-key"]?).try { |v| Path[v].expand(home: true) }
+      cert = (params["ssl-cert"]?).try { |v| Path[v].expand(home: true) }
+      ca = (params["ssl-ca"]?).try { |v| Path[v].expand(home: true) }
 
       SSLOptions.new(mode: mode, key: key, cert: cert, ca: ca)
     end

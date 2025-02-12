@@ -33,6 +33,7 @@ module MySql::Protocol
     end
   end
 
+  # https://dev.mysql.com/doc/dev/mysql-server/latest/page_protocol_connection_phase_packets_protocol_handshake_response.html#sect_protocol_connection_phase_packets_protocol_handshake_response41
   struct HandshakeResponse41
     CLIENT_LONG_PASSWORD                  = 0x00000001
     CLIENT_FOUND_ROWS                     = 0x00000002
@@ -61,6 +62,18 @@ module MySql::Protocol
     CLIENT_DEPRECATE_EOF                  = 0x01000000
 
     def initialize(@username : String?, @password : String?, @initial_catalog : String?, @auth_plugin_data : Bytes, @charset : UInt8)
+    end
+
+    # https://dev.mysql.com/doc/dev/mysql-server/latest/page_protocol_connection_phase_packets_protocol_ssl_request.html
+    def write_ssl_request(packet : MySql::WritePacket)
+      caps = CLIENT_PROTOCOL_41 | CLIENT_SSL
+      caps |= CLIENT_CONNECT_WITH_DB if @initial_catalog
+
+      packet.write_bytes caps, IO::ByteFormat::LittleEndian
+
+      packet.write_bytes 0x00000000u32, IO::ByteFormat::LittleEndian
+      packet.write_byte @charset
+      23.times { packet.write_byte 0_u8 }
     end
 
     def write(packet : MySql::WritePacket)

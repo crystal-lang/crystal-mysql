@@ -107,6 +107,17 @@ Query string takes precedence because it's more explicit.
 - `mysql://localhost:3306?database=mydb`
 - `mysql:///path/to/other.sock?database=mydb`
 
+#### Secure connections (SSL/TLS)
+
+By default a tcp connection will establish a secure connection, whether a unix socket will not.
+
+You can tweak this default behaviour and require further validation of certificates using `ssl-mode` and the following query strings.
+
+- `ssl-mode`: Either `disabled`, `preferred` (default), `required`, `verify_ca`, `verify_identity`.
+- `ssl-key`: Path to the client key.
+- `ssl-cert`: Path to the client certificate.
+- `ssl-ca`: Path to the CA certificate.
+
 #### Other query params
 
 - `encoding`: The collation & charset (character set) to use during the connection.

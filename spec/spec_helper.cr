@@ -8,7 +8,7 @@ def db_url(initial_db = nil)
   if initial_db
     "mysql://root@#{database_host}?database=#{initial_db}"
   else
-    "mysql://root@#{database_host}"
+    "mysql://root@#{database_host}?"
   end
 end
 

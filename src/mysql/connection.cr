@@ -9,7 +9,7 @@ class MySql::Connection < DB::Connection
     VerifyCA
     VerifyIdentity
   end
-  record SSLOptions, mode : SSLMode, key : Path?, cert : Path?, ca : Path? do
+  record SSLOptions, mode : SSLMode, key : Path? = nil, cert : Path? = nil, ca : Path? = nil do
     def self.from_params(params : URI::Params)
       mode =
         case (params["ssl-mode"]?).try &.downcase

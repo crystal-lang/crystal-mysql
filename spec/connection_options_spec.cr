@@ -16,7 +16,7 @@ private def ssl_from_params(params)
   Connection::SSLOptions.from_params(URI::Params.parse(params))
 end
 
-SSL_OPTION_PREFERRED = Connection::SSLOptions.new(mode: :preferred, key: nil, cert: nil, ca: nil)
+SSL_OPTION_PREFERRED = Connection::SSLOptions.new(mode: :preferred)
 
 describe Connection::Options do
   describe ".from_uri" do

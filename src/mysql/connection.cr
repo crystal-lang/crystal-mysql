@@ -12,21 +12,10 @@ class MySql::Connection < DB::Connection
   record SSLOptions, mode : SSLMode, key : Path? = nil, cert : Path? = nil, ca : Path? = nil do
     def self.from_params(params : URI::Params)
       mode =
-        case (params["ssl-mode"]?).try &.downcase
-        when nil
-          SSLMode::Preferred
-        when "preferred"
-          SSLMode::Preferred
-        when "disabled"
-          SSLMode::Disabled
-        when "required"
-          SSLMode::Required
-        when "verifyca", "verify-ca", "verify_ca"
-          SSLMode::VerifyCA
-        when "verifyidentity", "verify-identity", "verify_identity"
-          SSLMode::VerifyIdentity
+        if mode_param = params["ssl-mode"]?
+          SSLMode.parse(mode_param)
         else
-          raise ArgumentError.new(%(invalid "#{params["ssl-mode"]}" value for ssl-mode))
+          SSLMode::Preferred
         end
 
       # NOTE: Passing paths prefixed with ~/ or ./ seems to not work with OpenSSL

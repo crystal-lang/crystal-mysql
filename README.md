@@ -1,5 +1,6 @@
-# crystal-mysql [![Build Status](https://travis-ci.org/crystal-lang/crystal-mysql.svg?branch=master)](https://travis-ci.org/crystal-lang/crystal-mysql)
+[![CI](https://github.com/crystal-lang/crystal-mysql/actions/workflows/ci.yml/badge.svg)](https://github.com/crystal-lang/crystal-mysql/actions/workflows/ci.yml)
 
+# crystal-mysql
 
 MySQL driver implement natively in Crystal, without relying on external libraries.
 

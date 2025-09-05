@@ -1,3 +1,11 @@
+## v0.17.0 (2025-09-05)
+
+* Add support for unix socket connection. ([#115](https://github.com/crystal-lang/crystal-mysql/pull/115), thanks @bcardiff)
+* Add ssl support. ([#117](https://github.com/crystal-lang/crystal-mysql/pull/117), thanks @bcardiff)
+* Update to crystal-db ~> 0.14.0. ([#118](https://github.com/crystal-lang/crystal-mysql/pull/118), thanks @bcardiff)
+* CI and spec maintenance ([#114](https://github.com/crystal-lang/crystal-mysql/pull/114), thanks @bcardiff)
+* Update formatting ([#116](https://github.com/crystal-lang/crystal-mysql/pull/116), thanks @straight-shoota)
+
 ## v0.16.0 (2023-12-21)
 
 * Update to crystal-db ~> 0.13.1. ([#112](https://github.com/crystal-lang/crystal-mysql/pull/112))

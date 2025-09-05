@@ -1,4 +1,4 @@
-## v0.17.0 (2025-09-??)
+## v0.17.0 (2025-09-05)
 
 * Add support for unix socket connection. ([#115](https://github.com/crystal-lang/crystal-mysql/pull/115), thanks @bcardiff)
 * Add ssl support. ([#117](https://github.com/crystal-lang/crystal-mysql/pull/117), thanks @bcardiff)

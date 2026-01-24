@@ -2,6 +2,8 @@ require "socket"
 require "openssl"
 
 class MySql::Connection < DB::Connection
+  class Error < Exception; end
+
   enum SSLMode
     Disabled
     Preferred
@@ -200,8 +202,16 @@ class MySql::Connection < DB::Connection
 
   # :nodoc:
   def handle_err_packet(packet)
-    8.times { packet.read_byte! }
-    raise packet.read_string
+    error_code = packet.read_fixed_int(2)
+    packet.read_byte_array(6)
+    message = packet.read_string
+
+    case error_code
+    when 1053, 1152, 1927, 2006, 2013
+      raise DB::ConnectionLost.new(self, Exception.new(message))
+    else
+      raise Error.new(message)
+    end
   end
 
   # :nodoc:

@@ -2,7 +2,7 @@ require "socket"
 require "openssl"
 
 class MySql::Connection < DB::Connection
-  class Error < Exception; end
+  class PacketError < Exception; end
 
   enum SSLMode
     Disabled
@@ -217,7 +217,7 @@ class MySql::Connection < DB::Connection
     when 1053, 1152, 1927, 2006, 2013
       raise DB::ConnectionLost.new(self, Exception.new(message))
     else
-      raise Error.new(message)
+      raise PacketError.new(message)
     end
   end
 

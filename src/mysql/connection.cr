@@ -215,7 +215,7 @@ class MySql::Connection < DB::Connection
     # Error 2013: Lost connection to MySQL server during query
     case error_code
     when 1053, 1152, 1927, 2006, 2013
-      raise DB::ConnectionLost.new(self, Exception.new(message))
+      raise DB::ConnectionLost.new(self, PacketError.new(message))
     else
       raise PacketError.new(message)
     end

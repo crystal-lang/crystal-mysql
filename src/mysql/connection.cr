@@ -2,6 +2,8 @@ require "socket"
 require "openssl"
 
 class MySql::Connection < DB::Connection
+  class PacketError < Exception; end
+
   enum SSLMode
     Disabled
     Preferred
@@ -200,8 +202,23 @@ class MySql::Connection < DB::Connection
 
   # :nodoc:
   def handle_err_packet(packet)
-    8.times { packet.read_byte! }
-    raise packet.read_string
+    error_code = packet.read_fixed_int(2)
+    packet.read_byte_array(6)
+    message = packet.read_string
+
+    # https://dev.mysql.com/doc/mysql-errors/8.0/en/server-error-reference.html
+    # https://dev.mysql.com/doc/mysql-errors/8.0/en/client-error-reference.html
+    # Error 1053: Server shutdown in progress
+    # Error 1152: Aborted connection to db user
+    # Error 1927: Connection was killed
+    # Error 2006: MySQL server has gone away
+    # Error 2013: Lost connection to MySQL server during query
+    case error_code
+    when 1053, 1152, 1927, 2006, 2013
+      raise DB::ConnectionLost.new(self, PacketError.new(message))
+    else
+      raise PacketError.new(message)
+    end
   end
 
   # :nodoc:

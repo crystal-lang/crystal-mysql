@@ -1,11 +1,14 @@
 require "openssl/sha1"
 
 module MySql::Protocol
+  # https://dev.mysql.com/doc/dev/mysql-server/latest/page_protocol_connection_phase_packets_protocol_handshake_v10.html
   struct HandshakeV10
     getter auth_plugin_data : Bytes
     getter charset : UInt8
+    getter server_capabilities : UInt32
+    getter server_plugin_name : String
 
-    def initialize(@auth_plugin_data, @charset)
+    def initialize(@auth_plugin_data, @charset, @server_capabilities, @server_plugin_name)
     end
 
     def self.read(packet : MySql::ReadPacket)
@@ -23,13 +26,15 @@ module MySql::Protocol
       cap3 = packet.read_byte!
       cap4 = packet.read_byte!
 
+      server_capabilities = cap1.to_u32 | (cap2.to_u32 << 8) | (cap3.to_u32 << 16) | (cap4.to_u32 << 24)
+
       auth_plugin_data_length = packet.read_byte!
       packet.read_byte_array(10)
       packet.read_fully(auth_data[8, {13, auth_plugin_data_length.to_i16 - 8}.max - 1])
       packet.read_byte!
-      packet.read_string
+      server_plugin_name = packet.read_string
 
-      HandshakeV10.new(auth_data, charset)
+      HandshakeV10.new(auth_data, charset, server_capabilities, server_plugin_name)
     end
   end
 

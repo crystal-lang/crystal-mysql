@@ -69,6 +69,10 @@ module MySql::Auth
     result
   end
 
+  def self.rsa_encrypt_password(password : String, scramble : Bytes, pem_key : String) : Bytes
+    raise "RSA encryption not yet implemented"
+  end
+
   private def self.sha256(data : Bytes) : Bytes
     digest = OpenSSL::Digest.new("SHA256")
     digest.update(data)

@@ -109,7 +109,9 @@ class MySql::Connection < DB::Connection
 
       handshake = read_packet(Protocol::HandshakeV10)
 
-      handshake_response = Protocol::HandshakeResponse41.new(mysql_options.username, mysql_options.password, mysql_options.initial_catalog, handshake.auth_plugin_data, charset_id)
+      handshake_response = Protocol::HandshakeResponse41.new(
+        mysql_options.username, mysql_options.password, mysql_options.initial_catalog,
+        handshake.auth_plugin_data, charset_id, handshake.server_plugin_name)
       seq = 1
 
       if mysql_options.ssl_options.mode != SSLMode::Disabled &&
@@ -129,9 +131,44 @@ class MySql::Connection < DB::Connection
       write_packet(seq) do |packet|
         handshake_response.write(packet)
       end
+      seq += 1
 
-      read_ok_or_err do |packet, status|
-        raise "packet #{status} not implemented"
+      # Auth state machine
+      plugin_name = handshake.server_plugin_name
+      scramble = handshake.auth_plugin_data
+      ssl_established = @socket.is_a?(OpenSSL::SSL::Socket::Client)
+
+      auth_complete = false
+      until auth_complete
+        read_packet do |packet|
+          status = packet.read_byte!
+
+          case status
+          when 0x00
+            # OK packet — authentication successful
+            auth_complete = true
+          when 0xFF
+            # ERR packet
+            handle_err_packet(packet)
+          when 0xFE
+            # AuthSwitchRequest
+            plugin_name = packet.read_string
+            new_scramble = Bytes.new(20)
+            bytes_read = packet.read(new_scramble).to_i
+            scramble = new_scramble[0, bytes_read] if bytes_read > 0
+
+            auth_response = Auth.compute_auth_response(plugin_name, mysql_options.password, scramble)
+            write_packet(seq) do |pkt|
+              pkt.write(auth_response)
+            end
+            seq += 1
+          when 0x01
+            # AuthMoreData
+            seq = handle_auth_more_data(packet, plugin_name, mysql_options.password, scramble, ssl_established, seq)
+          else
+            raise PacketError.new("Unexpected auth packet status: #{status}")
+          end
+        end
       end
     rescue IO::Error
       raise DB::ConnectionRefused.new
@@ -220,6 +257,64 @@ class MySql::Connection < DB::Connection
     else
       raise PacketError.new(message)
     end
+  end
+
+  private def handle_auth_more_data(packet : ReadPacket, plugin_name : String, password : String?, scramble : Bytes, ssl_established : Bool, seq : Int32) : Int32
+    case plugin_name
+    when "caching_sha2_password"
+      flag = packet.read_byte!
+      case flag
+      when 0x03
+        # Fast auth success — next packet will be OK
+      when 0x04
+        # Full authentication required
+        if ssl_established
+          xored = Auth.xor_password_scramble(password || "", scramble)
+          write_packet(seq) do |pkt|
+            pkt.write(xored)
+          end
+          seq += 1
+        else
+          # Request RSA public key
+          write_packet(seq) do |pkt|
+            pkt.write_byte(0x02_u8)
+          end
+          seq += 1
+
+          # Read RSA public key
+          read_packet do |key_packet|
+            key_status = key_packet.read_byte!
+            raise PacketError.new("Expected AuthMoreData with RSA key, got #{key_status}") unless key_status == 0x01
+            pem_data = key_packet.read_string(key_packet.remaining)
+            encrypted = Auth.rsa_encrypt_password(password || "", scramble, pem_data)
+            write_packet(seq) do |pkt|
+              pkt.write(encrypted)
+            end
+            seq += 1
+          end
+        end
+      else
+        raise PacketError.new("Unexpected caching_sha2_password flag: #{flag}")
+      end
+    when "sha256_password"
+      pem_data = packet.read_string(packet.remaining)
+      if ssl_established
+        xored = Auth.xor_password_scramble(password || "", scramble)
+        write_packet(seq) do |pkt|
+          pkt.write(xored)
+        end
+        seq += 1
+      else
+        encrypted = Auth.rsa_encrypt_password(password || "", scramble, pem_data)
+        write_packet(seq) do |pkt|
+          pkt.write(encrypted)
+        end
+        seq += 1
+      end
+    else
+      raise PacketError.new("AuthMoreData not expected for plugin: #{plugin_name}")
+    end
+    seq
   end
 
   # :nodoc:

@@ -1,5 +1,3 @@
-require "openssl/sha1"
-
 module MySql::Protocol
   # https://dev.mysql.com/doc/dev/mysql-server/latest/page_protocol_connection_phase_packets_protocol_handshake_v10.html
   struct HandshakeV10
@@ -66,7 +64,7 @@ module MySql::Protocol
     CLIENT_SESSION_TRACK                  = 0x00800000
     CLIENT_DEPRECATE_EOF                  = 0x01000000
 
-    def initialize(@username : String?, @password : String?, @initial_catalog : String?, @auth_plugin_data : Bytes, @charset : UInt8)
+    def initialize(@username : String?, @password : String?, @initial_catalog : String?, @auth_plugin_data : Bytes, @charset : UInt8, @plugin_name : String = "mysql_native_password")
     end
 
     # https://dev.mysql.com/doc/dev/mysql-server/latest/page_protocol_connection_phase_packets_protocol_ssl_request.html
@@ -82,14 +80,10 @@ module MySql::Protocol
     end
 
     def write(packet : MySql::WritePacket)
-      caps = CLIENT_PROTOCOL_41 | CLIENT_SECURE_CONNECTION | CLIENT_PLUGIN_AUTH_LENENC_CLIENT_DATA
-
-      caps |= CLIENT_PLUGIN_AUTH if @password
-
+      caps = CLIENT_PROTOCOL_41 | CLIENT_SECURE_CONNECTION | CLIENT_PLUGIN_AUTH_LENENC_CLIENT_DATA | CLIENT_PLUGIN_AUTH
       caps |= CLIENT_CONNECT_WITH_DB if @initial_catalog
 
       packet.write_bytes caps, IO::ByteFormat::LittleEndian
-
       packet.write_bytes 0x00000000u32, IO::ByteFormat::LittleEndian
       packet.write_byte @charset
       23.times { packet.write_byte 0_u8 }
@@ -97,30 +91,12 @@ module MySql::Protocol
       packet << @username
       packet.write_byte 0_u8
 
-      if password = @password
-        sizet_20 = LibC::SizeT.new(20)
-        sha1 = OpenSSL::SHA1.hash(password)
-        sha1sha1 = OpenSSL::SHA1.hash(sha1.to_unsafe, sizet_20)
-
-        buffer = uninitialized UInt8[40]
-        buffer.to_unsafe.copy_from(@auth_plugin_data.to_unsafe, 20)
-        (buffer.to_unsafe + 20).copy_from(sha1sha1.to_unsafe, 20)
-
-        sizet_40 = LibC::SizeT.new(40)
-        buffer_sha1 = OpenSSL::SHA1.hash(buffer.to_unsafe, sizet_40)
-
-        # reuse buffer
-        20.times { |i|
-          buffer[i] = sha1[i] ^ buffer_sha1[i]
-        }
-
-        auth_response = Bytes.new(buffer.to_unsafe, 20)
-
-        # packet.write_byte 0_u8
-        packet.write_lenenc_int 20
-        packet.write(auth_response)
-      else
+      auth_response = Auth.compute_auth_response(@plugin_name, @password, @auth_plugin_data)
+      if auth_response.empty?
         packet.write_byte 0_u8
+      else
+        packet.write_lenenc_int auth_response.size
+        packet.write(auth_response)
       end
 
       if initial_catalog = @initial_catalog
@@ -128,10 +104,8 @@ module MySql::Protocol
         packet.write_byte 0_u8
       end
 
-      if @password
-        packet << "mysql_native_password"
-        packet.write_byte 0_u8
-      end
+      packet << @plugin_name
+      packet.write_byte 0_u8
     end
   end
 

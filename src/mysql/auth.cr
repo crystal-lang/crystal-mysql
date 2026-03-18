@@ -69,8 +69,69 @@ module MySql::Auth
     result
   end
 
+  # Reopen Crystal's LibCrypto to add RSA encryption bindings for MySQL auth
+  lib LibCrypto
+    fun bio_new_mem_buf = BIO_new_mem_buf(buf : Void*, len : Int32) : Void*
+    fun pem_read_bio_pubkey = PEM_read_bio_PUBKEY(bio : Void*, x : Void*, cb : Void*, u : Void*) : Void*
+    fun evp_pkey_free = EVP_PKEY_free(pkey : Void*)
+    fun evp_pkey_ctx_new = EVP_PKEY_CTX_new(pkey : Void*, e : Void*) : Void*
+    fun evp_pkey_ctx_free = EVP_PKEY_CTX_free(ctx : Void*)
+    fun evp_pkey_encrypt_init = EVP_PKEY_encrypt_init(ctx : Void*) : Int32
+    fun evp_pkey_ctx_ctrl = EVP_PKEY_CTX_ctrl(ctx : Void*, keytype : Int32, optype : Int32, cmd : Int32, p1 : Int32, p2 : Void*) : Int32
+    fun evp_pkey_encrypt = EVP_PKEY_encrypt(ctx : Void*, out : UInt8*, outlen : LibC::SizeT*, in_buf : UInt8*, inlen : LibC::SizeT) : Int32
+  end
+
   def self.rsa_encrypt_password(password : String, scramble : Bytes, pem_key : String) : Bytes
-    raise "RSA encryption not yet implemented"
+    xored = xor_password_scramble(password, scramble)
+
+    bio = LibCrypto.bio_new_mem_buf(pem_key.to_unsafe.as(Void*), pem_key.bytesize)
+    raise Connection::PacketError.new("Failed to create BIO for RSA key") if bio.null?
+
+    begin
+      pkey = LibCrypto.pem_read_bio_pubkey(bio, nil, nil, nil)
+      raise Connection::PacketError.new("Failed to parse RSA public key") if pkey.null?
+
+      begin
+        ctx = LibCrypto.evp_pkey_ctx_new(pkey, nil)
+        raise Connection::PacketError.new("Failed to create EVP_PKEY_CTX") if ctx.null?
+
+        begin
+          if LibCrypto.evp_pkey_encrypt_init(ctx) <= 0
+            raise Connection::PacketError.new("EVP_PKEY_encrypt_init failed")
+          end
+
+          # Set RSA OAEP padding
+          evp_pkey_rsa = 6
+          evp_pkey_op_encrypt = 1 << 9
+          evp_pkey_ctrl_rsa_padding = 0x1001
+          rsa_pkcs1_oaep_padding = 4
+
+          if LibCrypto.evp_pkey_ctx_ctrl(ctx, evp_pkey_rsa, evp_pkey_op_encrypt, evp_pkey_ctrl_rsa_padding, rsa_pkcs1_oaep_padding, nil) <= 0
+            raise Connection::PacketError.new("Failed to set RSA OAEP padding")
+          end
+
+          # Determine output size
+          out_len = LibC::SizeT.new(0)
+          if LibCrypto.evp_pkey_encrypt(ctx, nil, pointerof(out_len), xored.to_unsafe, LibC::SizeT.new(xored.size)) <= 0
+            raise Connection::PacketError.new("EVP_PKEY_encrypt size determination failed")
+          end
+
+          # Encrypt
+          encrypted = Bytes.new(out_len.to_i32)
+          if LibCrypto.evp_pkey_encrypt(ctx, encrypted.to_unsafe, pointerof(out_len), xored.to_unsafe, LibC::SizeT.new(xored.size)) <= 0
+            raise Connection::PacketError.new("RSA encryption failed")
+          end
+
+          encrypted[0, out_len.to_i32]
+        ensure
+          LibCrypto.evp_pkey_ctx_free(ctx)
+        end
+      ensure
+        LibCrypto.evp_pkey_free(pkey)
+      end
+    ensure
+      LibCrypto.BIO_free(bio.as(LibCrypto::Bio*))
+    end
   end
 
   private def self.sha256(data : Bytes) : Bytes

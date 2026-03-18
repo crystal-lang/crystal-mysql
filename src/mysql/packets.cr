@@ -1,5 +1,37 @@
 require "openssl/sha1"
 
+module MySql
+  # https://dev.mysql.com/doc/dev/mysql-server/latest/group__group__cs__capabilities__flags.html
+  @[Flags]
+  enum Capability : UInt32
+    LongPassword               = 0x00000001
+    FoundRows                  = 0x00000002
+    LongFlag                   = 0x00000004
+    ConnectWithDB              = 0x00000008
+    NoSchema                   = 0x00000010
+    Compress                   = 0x00000020
+    ODBC                       = 0x00000040
+    LocalFiles                 = 0x00000080
+    IgnoreSpace                = 0x00000100
+    Protocol41                 = 0x00000200
+    Interactive                = 0x00000400
+    SSL                        = 0x00000800
+    IgnoreSigpipe              = 0x00001000
+    Transactions               = 0x00002000
+    Reserved                   = 0x00004000
+    SecureConnection           = 0x00008000
+    MultiStatements            = 0x00010000
+    MultiResults               = 0x00020000
+    PSMultiResults             = 0x00040000
+    PluginAuth                 = 0x00080000
+    ConnectAttrs               = 0x00100000
+    PluginAuthLenencClientData = 0x00200000
+    CanHandleExpiredPasswords  = 0x00400000
+    SessionTrack               = 0x00800000
+    DeprecateEOF               = 0x01000000
+  end
+end
+
 module MySql::Protocol
   struct HandshakeV10
     getter auth_plugin_data : Bytes
@@ -35,41 +67,15 @@ module MySql::Protocol
 
   # https://dev.mysql.com/doc/dev/mysql-server/latest/page_protocol_connection_phase_packets_protocol_handshake_response.html#sect_protocol_connection_phase_packets_protocol_handshake_response41
   struct HandshakeResponse41
-    CLIENT_LONG_PASSWORD                  = 0x00000001
-    CLIENT_FOUND_ROWS                     = 0x00000002
-    CLIENT_LONG_FLAG                      = 0x00000004
-    CLIENT_CONNECT_WITH_DB                = 0x00000008
-    CLIENT_NO_SCHEMA                      = 0x00000010
-    CLIENT_COMPRESS                       = 0x00000020
-    CLIENT_ODBC                           = 0x00000040
-    CLIENT_LOCAL_FILES                    = 0x00000080
-    CLIENT_IGNORE_SPACE                   = 0x00000100
-    CLIENT_PROTOCOL_41                    = 0x00000200
-    CLIENT_INTERACTIVE                    = 0x00000400
-    CLIENT_SSL                            = 0x00000800
-    CLIENT_IGNORE_SIGPIPE                 = 0x00001000
-    CLIENT_TRANSACTIONS                   = 0x00002000
-    CLIENT_RESERVED                       = 0x00004000
-    CLIENT_SECURE_CONNECTION              = 0x00008000
-    CLIENT_MULTI_STATEMENTS               = 0x00010000
-    CLIENT_MULTI_RESULTS                  = 0x00020000
-    CLIENT_PS_MULTI_RESULTS               = 0x00040000
-    CLIENT_PLUGIN_AUTH                    = 0x00080000
-    CLIENT_CONNECT_ATTRS                  = 0x00100000
-    CLIENT_PLUGIN_AUTH_LENENC_CLIENT_DATA = 0x00200000
-    CLIENT_CAN_HANDLE_EXPIRED_PASSWORDS   = 0x00400000
-    CLIENT_SESSION_TRACK                  = 0x00800000
-    CLIENT_DEPRECATE_EOF                  = 0x01000000
-
     def initialize(@username : String?, @password : String?, @initial_catalog : String?, @auth_plugin_data : Bytes, @charset : UInt8)
     end
 
     # https://dev.mysql.com/doc/dev/mysql-server/latest/page_protocol_connection_phase_packets_protocol_ssl_request.html
     def write_ssl_request(packet : MySql::WritePacket)
-      caps = CLIENT_PROTOCOL_41 | CLIENT_SSL
-      caps |= CLIENT_CONNECT_WITH_DB if @initial_catalog
+      caps = Capability::Protocol41 | Capability::SSL
+      caps |= Capability::ConnectWithDB if @initial_catalog
 
-      packet.write_bytes caps, IO::ByteFormat::LittleEndian
+      packet.write_bytes caps.value, IO::ByteFormat::LittleEndian
 
       packet.write_bytes 0x00000000u32, IO::ByteFormat::LittleEndian
       packet.write_byte @charset
@@ -77,14 +83,10 @@ module MySql::Protocol
     end
 
     def write(packet : MySql::WritePacket)
-      caps = CLIENT_PROTOCOL_41 | CLIENT_SECURE_CONNECTION | CLIENT_PLUGIN_AUTH_LENENC_CLIENT_DATA
+      caps = Capability::Protocol41 | Capability::SecureConnection | Capability::PluginAuthLenencClientData
+      caps |= Capability::ConnectWithDB if @initial_catalog
 
-      caps |= CLIENT_PLUGIN_AUTH if @password
-
-      caps |= CLIENT_CONNECT_WITH_DB if @initial_catalog
-
-      packet.write_bytes caps, IO::ByteFormat::LittleEndian
-
+      packet.write_bytes caps.value, IO::ByteFormat::LittleEndian
       packet.write_bytes 0x00000000u32, IO::ByteFormat::LittleEndian
       packet.write_byte @charset
       23.times { packet.write_byte 0_u8 }

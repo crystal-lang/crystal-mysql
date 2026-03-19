@@ -11,6 +11,7 @@ lib LibCrypto
   fun evp_pkey_encrypt_init = EVP_PKEY_encrypt_init(ctx : Void*) : Int32
   fun evp_pkey_ctx_ctrl = EVP_PKEY_CTX_ctrl(ctx : Void*, keytype : Int32, optype : Int32, cmd : Int32, p1 : Int32, p2 : Void*) : Int32
   fun evp_pkey_encrypt = EVP_PKEY_encrypt(ctx : Void*, out : UInt8*, outlen : LibC::SizeT*, in_buf : UInt8*, inlen : LibC::SizeT) : Int32
+  fun evp_pkey_ctx_set_rsa_oaep_md = EVP_PKEY_CTX_set_rsa_oaep_md(ctx : Void*, md : EVP_MD) : Int32
 end
 
 module MySql::Auth
@@ -83,9 +84,12 @@ module MySql::Auth
     pass_bytes.size.times do |i|
       result[i] = pass_bytes[i] ^ scramble[i % scramble.size]
     end
-    result[pass_bytes.size] = 0_u8
+    # XOR the null terminator too (matches MySQL protocol spec)
+    result[pass_bytes.size] = 0_u8 ^ scramble[pass_bytes.size % scramble.size]
     result
   end
+
+  RSA_PKCS1_OAEP_PADDING = 4
 
   def self.rsa_encrypt_password(password : String, scramble : Bytes, pem_key : String) : Bytes
     xored = xor_password_scramble(password, scramble)
@@ -107,9 +111,14 @@ module MySql::Auth
           end
 
           # Set RSA OAEP padding
-          # EVP_PKEY_RSA=6, EVP_PKEY_OP_ENCRYPT=1<<9, EVP_PKEY_CTRL_RSA_PADDING=0x1001, RSA_PKCS1_OAEP_PADDING=4
-          if LibCrypto.evp_pkey_ctx_ctrl(ctx, 6, 1 << 9, 0x1001, 4, nil) <= 0
+          # EVP_PKEY_RSA=6, EVP_PKEY_OP_ENCRYPT=1<<9, EVP_PKEY_CTRL_RSA_PADDING=0x1001
+          if LibCrypto.evp_pkey_ctx_ctrl(ctx, 6, 1 << 9, 0x1001, RSA_PKCS1_OAEP_PADDING, nil) <= 0
             raise Connection::PacketError.new("Failed to set RSA OAEP padding")
+          end
+
+          # Set OAEP digest to SHA-1 (MySQL expects SHA-1, OpenSSL 3.x may default to SHA-256)
+          if LibCrypto.evp_pkey_ctx_set_rsa_oaep_md(ctx, LibCrypto.evp_sha1) <= 0
+            raise Connection::PacketError.new("Failed to set OAEP digest to SHA-1")
           end
 
           # Determine output size

@@ -1,7 +1,7 @@
 class MySql::ReadPacket < IO
   getter remaining : Int32 = 0
+  getter seq : UInt8 = 0u8
   @length : Int32 = 0
-  @seq : UInt8 = 0u8
 
   def initialize(@io : IO, @connection : Connection)
     @length = 0

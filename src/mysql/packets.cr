@@ -75,7 +75,7 @@ module MySql::Protocol
 
     # https://dev.mysql.com/doc/dev/mysql-server/latest/page_protocol_connection_phase_packets_protocol_ssl_request.html
     def write_ssl_request(packet : MySql::WritePacket)
-      caps = Capability::Protocol41 | Capability::SSL
+      caps = Capability::Protocol41 | Capability::SSL | Capability::SecureConnection | Capability::PluginAuth | Capability::PluginAuthLenencClientData
       caps |= Capability::ConnectWithDB if @initial_catalog
 
       packet.write_bytes caps.value, IO::ByteFormat::LittleEndian
@@ -85,7 +85,7 @@ module MySql::Protocol
       23.times { packet.write_byte 0_u8 }
     end
 
-    def write(packet : MySql::WritePacket)
+    def write(packet : MySql::WritePacket, ssl_established : Bool = false)
       caps = Capability::Protocol41 | Capability::SecureConnection | Capability::PluginAuthLenencClientData | Capability::PluginAuth
       caps |= Capability::ConnectWithDB if @initial_catalog
 
@@ -97,7 +97,7 @@ module MySql::Protocol
       packet << @username
       packet.write_byte 0_u8
 
-      auth_response = Auth.compute_auth_response(@plugin_name, @password, @auth_plugin_data)
+      auth_response = Auth.compute_auth_response(@plugin_name, @password, @auth_plugin_data, ssl_established)
       if auth_response.empty?
         packet.write_byte 0_u8
       else

@@ -128,19 +128,21 @@ class MySql::Connection < DB::Connection
         # so the user would need to explicitly choose Disabled to avoid the ssl setup.
       end
 
+      ssl_established = @socket.is_a?(OpenSSL::SSL::Socket::Client)
+
       write_packet(seq) do |packet|
-        handshake_response.write(packet)
+        handshake_response.write(packet, ssl_established)
       end
       seq += 1
 
       # Auth state machine
       plugin_name = handshake.server_plugin_name
       scramble = handshake.auth_plugin_data
-      ssl_established = @socket.is_a?(OpenSSL::SSL::Socket::Client)
 
       auth_complete = false
       until auth_complete
         read_packet do |packet|
+          seq = packet.seq.to_i32 + 1
           status = packet.read_byte!
 
           case status
@@ -157,7 +159,7 @@ class MySql::Connection < DB::Connection
             bytes_read = packet.read(new_scramble).to_i
             scramble = new_scramble[0, bytes_read] if bytes_read > 0
 
-            auth_response = Auth.compute_auth_response(plugin_name, mysql_options.password, scramble)
+            auth_response = Auth.compute_auth_response(plugin_name, mysql_options.password, scramble, ssl_established)
             write_packet(seq) do |pkt|
               pkt.write(auth_response)
             end
@@ -269,9 +271,11 @@ class MySql::Connection < DB::Connection
       when 0x04
         # Full authentication required
         if ssl_established
-          xored = Auth.xor_password_scramble(password || "", scramble)
+          # Over TLS: send plaintext password null-terminated
+          pw = (password || "").to_slice
           write_packet(seq) do |pkt|
-            pkt.write(xored)
+            pkt.write(pw)
+            pkt.write_byte(0_u8)
           end
           seq += 1
         else
@@ -283,6 +287,7 @@ class MySql::Connection < DB::Connection
 
           # Read RSA public key
           read_packet do |key_packet|
+            seq = key_packet.seq.to_i32 + 1
             key_status = key_packet.read_byte!
             raise PacketError.new("Expected AuthMoreData with RSA key, got #{key_status}") unless key_status == 0x01
             pem_data = key_packet.read_string(key_packet.remaining)
@@ -299,9 +304,11 @@ class MySql::Connection < DB::Connection
     when "sha256_password"
       pem_data = packet.read_string(packet.remaining)
       if ssl_established
-        xored = Auth.xor_password_scramble(password || "", scramble)
+        # Over TLS: send plaintext password null-terminated
+        pw = (password || "").to_slice
         write_packet(seq) do |pkt|
-          pkt.write(xored)
+          pkt.write(pw)
+          pkt.write_byte(0_u8)
         end
         seq += 1
       else

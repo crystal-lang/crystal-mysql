@@ -1,8 +1,6 @@
 # Usage:
-#   docker-compose -f docker-compose.auth-test.yml up -d
-#   docker-compose -f docker-compose.auth-test.yml down -v
-
-version: '2.0'
+#   docker compose -f docker-compose.auth-test.yml up -d
+#   docker compose -f docker-compose.auth-test.yml down -v
 
 services:
   mysql57:

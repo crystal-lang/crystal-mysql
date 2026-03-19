@@ -1,8 +1,20 @@
 require "openssl/sha1"
 require "openssl/digest"
 
+# Reopen Crystal's LibCrypto to add RSA encryption bindings for MySQL auth
+lib LibCrypto
+  fun bio_new_mem_buf = BIO_new_mem_buf(buf : Void*, len : Int32) : Bio*
+  fun pem_read_bio_pubkey = PEM_read_bio_PUBKEY(bio : Bio*, x : Void*, cb : Void*, u : Void*) : Void*
+  fun evp_pkey_free = EVP_PKEY_free(pkey : Void*)
+  fun evp_pkey_ctx_new = EVP_PKEY_CTX_new(pkey : Void*, e : Void*) : Void*
+  fun evp_pkey_ctx_free = EVP_PKEY_CTX_free(ctx : Void*)
+  fun evp_pkey_encrypt_init = EVP_PKEY_encrypt_init(ctx : Void*) : Int32
+  fun evp_pkey_ctx_ctrl = EVP_PKEY_CTX_ctrl(ctx : Void*, keytype : Int32, optype : Int32, cmd : Int32, p1 : Int32, p2 : Void*) : Int32
+  fun evp_pkey_encrypt = EVP_PKEY_encrypt(ctx : Void*, out : UInt8*, outlen : LibC::SizeT*, in_buf : UInt8*, inlen : LibC::SizeT) : Int32
+end
+
 module MySql::Auth
-  def self.compute_auth_response(plugin_name : String, password : String?, scramble : Bytes) : Bytes
+  def self.compute_auth_response(plugin_name : String, password : String?, scramble : Bytes, ssl_established : Bool = false) : Bytes
     if password.nil? || password.empty?
       return Bytes.empty
     end
@@ -13,7 +25,13 @@ module MySql::Auth
     when "caching_sha2_password"
       caching_sha2_password(password, scramble)
     when "sha256_password"
-      Bytes[0x01]
+      if ssl_established
+        # Over TLS: send plaintext password null-terminated
+        clear_password(password)
+      else
+        # Without TLS: send 0x01 to request RSA public key
+        Bytes[0x01]
+      end
     when "mysql_clear_password"
       clear_password(password)
     else
@@ -69,18 +87,6 @@ module MySql::Auth
     result
   end
 
-  # Reopen Crystal's LibCrypto to add RSA encryption bindings for MySQL auth
-  lib LibCrypto
-    fun bio_new_mem_buf = BIO_new_mem_buf(buf : Void*, len : Int32) : Void*
-    fun pem_read_bio_pubkey = PEM_read_bio_PUBKEY(bio : Void*, x : Void*, cb : Void*, u : Void*) : Void*
-    fun evp_pkey_free = EVP_PKEY_free(pkey : Void*)
-    fun evp_pkey_ctx_new = EVP_PKEY_CTX_new(pkey : Void*, e : Void*) : Void*
-    fun evp_pkey_ctx_free = EVP_PKEY_CTX_free(ctx : Void*)
-    fun evp_pkey_encrypt_init = EVP_PKEY_encrypt_init(ctx : Void*) : Int32
-    fun evp_pkey_ctx_ctrl = EVP_PKEY_CTX_ctrl(ctx : Void*, keytype : Int32, optype : Int32, cmd : Int32, p1 : Int32, p2 : Void*) : Int32
-    fun evp_pkey_encrypt = EVP_PKEY_encrypt(ctx : Void*, out : UInt8*, outlen : LibC::SizeT*, in_buf : UInt8*, inlen : LibC::SizeT) : Int32
-  end
-
   def self.rsa_encrypt_password(password : String, scramble : Bytes, pem_key : String) : Bytes
     xored = xor_password_scramble(password, scramble)
 
@@ -101,12 +107,8 @@ module MySql::Auth
           end
 
           # Set RSA OAEP padding
-          evp_pkey_rsa = 6
-          evp_pkey_op_encrypt = 1 << 9
-          evp_pkey_ctrl_rsa_padding = 0x1001
-          rsa_pkcs1_oaep_padding = 4
-
-          if LibCrypto.evp_pkey_ctx_ctrl(ctx, evp_pkey_rsa, evp_pkey_op_encrypt, evp_pkey_ctrl_rsa_padding, rsa_pkcs1_oaep_padding, nil) <= 0
+          # EVP_PKEY_RSA=6, EVP_PKEY_OP_ENCRYPT=1<<9, EVP_PKEY_CTRL_RSA_PADDING=0x1001, RSA_PKCS1_OAEP_PADDING=4
+          if LibCrypto.evp_pkey_ctx_ctrl(ctx, 6, 1 << 9, 0x1001, 4, nil) <= 0
             raise Connection::PacketError.new("Failed to set RSA OAEP padding")
           end
 
@@ -130,7 +132,7 @@ module MySql::Auth
         LibCrypto.evp_pkey_free(pkey)
       end
     ensure
-      LibCrypto.BIO_free(bio.as(LibCrypto::Bio*))
+      LibCrypto.BIO_free(bio)
     end
   end
 

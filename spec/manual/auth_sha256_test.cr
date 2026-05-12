@@ -1,23 +1,20 @@
 # Target: mysql80 (port 13307)
-# Run:    crystal run spec/manual/auth_sha256_test.cr
+# Run:    crystal spec spec/manual/auth_sha256_test.cr
 #
 # Tests sha256_password authentication.
-# Expected to FAIL with current code.
 
+require "spec"
 require "../../src/mysql"
 
-tests = [
-  {"mysql://sha256_user:sha256_pass@localhost:13307", "sha256_user over TLS"},
-  {"mysql://sha256_user:sha256_pass@localhost:13307?ssl-mode=disabled", "sha256_user without TLS"},
-]
-
-tests.each do |url, label|
-  begin
-    DB.open(url) do |db|
-      user = db.scalar("SELECT CURRENT_USER()").as(String)
-      puts "PASS: #{label} (user=#{user})"
+describe "sha256_password authentication" do
+  [
+    {"mysql://sha256_user:sha256_pass@localhost:13307", "sha256_user over TLS"},
+    {"mysql://sha256_user:sha256_pass@localhost:13307?ssl-mode=disabled", "sha256_user without TLS"},
+  ].each do |(url, label)|
+    it label do
+      DB.open(url) do |db|
+        db.scalar("SELECT CURRENT_USER()").as(String).should_not be_empty
+      end
     end
-  rescue ex
-    puts "FAIL: #{label} — #{ex.message}"
   end
 end

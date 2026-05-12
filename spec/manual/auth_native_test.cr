@@ -1,21 +1,19 @@
 # Target: mysql57 (port 13306), mysql80_native (port 13308)
-# Run:    crystal run spec/manual/auth_native_test.cr
+# Run:    crystal spec spec/manual/auth_native_test.cr
 
+require "spec"
 require "../../src/mysql"
 
-tests = [
-  {"mysql://root@localhost:13306", "mysql57 root no password"},
-  {"mysql://root@localhost:13308", "mysql80_native root no password"},
-  {"mysql://native_user:native_pass@localhost:13308", "native_user with password"},
-]
-
-tests.each do |url, label|
-  begin
-    DB.open(url) do |db|
-      user = db.scalar("SELECT CURRENT_USER()").as(String)
-      puts "PASS: #{label} (user=#{user})"
+describe "mysql_native_password authentication" do
+  [
+    {"mysql://root@localhost:13306", "mysql57 root no password"},
+    {"mysql://root@localhost:13308", "mysql80_native root no password"},
+    {"mysql://native_user:native_pass@localhost:13308", "native_user with password"},
+  ].each do |(url, label)|
+    it label do
+      DB.open(url) do |db|
+        db.scalar("SELECT CURRENT_USER()").as(String).should_not be_empty
+      end
     end
-  rescue ex
-    puts "FAIL: #{label} — #{ex.message}"
   end
 end

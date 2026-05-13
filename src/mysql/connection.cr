@@ -161,7 +161,7 @@ class MySql::Connection < DB::Connection
             scramble_size = 0 if scramble_size < 0
             new_scramble = Bytes.new(scramble_size)
             packet.read_fully(new_scramble) if scramble_size > 0
-            scramble = new_scramble
+            scramble = new_scramble if scramble_size > 0
 
             auth_response = Auth.compute_auth_response(plugin_name, mysql_options.password, scramble, ssl_established)
             write_packet(seq) do |pkt|

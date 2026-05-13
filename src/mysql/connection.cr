@@ -153,11 +153,15 @@ class MySql::Connection < DB::Connection
             # ERR packet
             handle_err_packet(packet)
           when 0xFE
-            # AuthSwitchRequest
+            # AuthSwitchRequest: 0xFE, plugin_name\0, plugin_data\0
             plugin_name = packet.read_string
-            new_scramble = Bytes.new(20)
-            bytes_read = packet.read(new_scramble).to_i
-            scramble = new_scramble[0, bytes_read] if bytes_read > 0
+            # Scramble is up to 20 random bytes (may contain 0x00 internally) followed
+            # by a trailing null. Bound to remaining-1 so the null stays for discard.
+            scramble_size = {20, packet.remaining - 1}.min
+            scramble_size = 0 if scramble_size < 0
+            new_scramble = Bytes.new(scramble_size)
+            packet.read_fully(new_scramble) if scramble_size > 0
+            scramble = new_scramble
 
             auth_response = Auth.compute_auth_response(plugin_name, mysql_options.password, scramble, ssl_established)
             write_packet(seq) do |pkt|

@@ -89,7 +89,11 @@ module MySql::Auth
     result
   end
 
-  RSA_PKCS1_OAEP_PADDING = 4
+  # Constants from OpenSSL evp.h
+  EVP_PKEY_RSA              =  6
+  EVP_PKEY_OP_ENCRYPT       =  1 << 9
+  EVP_PKEY_CTRL_RSA_PADDING = 0x1001
+  RSA_PKCS1_OAEP_PADDING    =  4
 
   def self.rsa_encrypt_password(password : String, scramble : Bytes, pem_key : String) : Bytes
     xored = xor_password_scramble(password, scramble)
@@ -111,8 +115,7 @@ module MySql::Auth
           end
 
           # Set RSA OAEP padding
-          # EVP_PKEY_RSA=6, EVP_PKEY_OP_ENCRYPT=1<<9, EVP_PKEY_CTRL_RSA_PADDING=0x1001
-          if LibCrypto.evp_pkey_ctx_ctrl(ctx, 6, 1 << 9, 0x1001, RSA_PKCS1_OAEP_PADDING, nil) <= 0
+          if LibCrypto.evp_pkey_ctx_ctrl(ctx, EVP_PKEY_RSA, EVP_PKEY_OP_ENCRYPT, EVP_PKEY_CTRL_RSA_PADDING, RSA_PKCS1_OAEP_PADDING, nil) <= 0
             raise Connection::PacketError.new("Failed to set RSA OAEP padding")
           end
 

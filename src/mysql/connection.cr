@@ -276,10 +276,8 @@ class MySql::Connection < DB::Connection
         # Full authentication required
         if ssl_established
           # Over TLS: send plaintext password null-terminated
-          pw = (password || "").to_slice
           write_packet(seq) do |pkt|
-            pkt.write(pw)
-            pkt.write_byte(0_u8)
+            pkt.write(Auth.clear_password(password || ""))
           end
           seq += 1
         else
@@ -309,10 +307,8 @@ class MySql::Connection < DB::Connection
       pem_data = packet.read_string(packet.remaining)
       if ssl_established
         # Over TLS: send plaintext password null-terminated
-        pw = (password || "").to_slice
         write_packet(seq) do |pkt|
-          pkt.write(pw)
-          pkt.write_byte(0_u8)
+          pkt.write(Auth.clear_password(password || ""))
         end
         seq += 1
       else

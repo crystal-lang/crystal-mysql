@@ -140,7 +140,10 @@ class MySql::Connection < DB::Connection
       scramble = handshake.auth_plugin_data
 
       auth_complete = false
+      auth_iterations = 0
       until auth_complete
+        auth_iterations += 1
+        raise PacketError.new("Auth handshake did not complete after 10 packets") if auth_iterations > 10
         read_packet do |packet|
           seq = packet.seq.to_i32 + 1
           status = packet.read_byte!

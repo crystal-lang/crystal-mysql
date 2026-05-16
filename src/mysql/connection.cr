@@ -1,5 +1,6 @@
 require "socket"
 require "openssl"
+require "./auth"
 
 class MySql::Connection < DB::Connection
   class PacketError < Exception; end
@@ -108,7 +109,9 @@ class MySql::Connection < DB::Connection
 
       handshake = read_packet(Protocol::HandshakeV10)
 
-      handshake_response = Protocol::HandshakeResponse41.new(mysql_options.username, mysql_options.password, mysql_options.initial_catalog, handshake.auth_plugin_data, charset_id)
+      handshake_response = Protocol::HandshakeResponse41.new(
+        mysql_options.username, mysql_options.password, mysql_options.initial_catalog,
+        handshake.auth_plugin_data, charset_id, handshake.server_plugin_name)
       seq = 1
 
       if mysql_options.ssl_options.mode != SSLMode::Disabled &&
@@ -125,12 +128,56 @@ class MySql::Connection < DB::Connection
         # so the user would need to explicitly choose Disabled to avoid the ssl setup.
       end
 
-      write_packet(seq) do |packet|
-        handshake_response.write(packet)
-      end
+      ssl_established = @socket.is_a?(OpenSSL::SSL::Socket::Client)
 
-      read_ok_or_err do |packet, status|
-        raise "packet #{status} not implemented"
+      write_packet(seq) do |packet|
+        handshake_response.write(packet, ssl_established)
+      end
+      seq += 1
+
+      # Auth state machine
+      plugin_name = handshake.server_plugin_name
+      scramble = handshake.auth_plugin_data
+
+      auth_complete = false
+      auth_iterations = 0
+      until auth_complete
+        auth_iterations += 1
+        raise PacketError.new("Auth handshake did not complete after 10 packets") if auth_iterations > 10
+        read_packet do |packet|
+          seq = packet.seq.to_i32 + 1
+          status = packet.read_byte!
+
+          case status
+          when 0x00
+            # OK packet — authentication successful
+            auth_complete = true
+          when 0xFF
+            # ERR packet
+            handle_err_packet(packet)
+          when 0xFE
+            # AuthSwitchRequest: 0xFE, plugin_name\0, plugin_data\0
+            plugin_name = packet.read_string
+            # Scramble is up to 20 random bytes (may contain 0x00 internally) followed
+            # by a trailing null. Bound to remaining-1 so the null stays for discard.
+            scramble_size = {20, packet.remaining - 1}.min
+            scramble_size = 0 if scramble_size < 0
+            new_scramble = Bytes.new(scramble_size)
+            packet.read_fully(new_scramble) if scramble_size > 0
+            scramble = new_scramble if scramble_size > 0
+
+            auth_response = Auth.compute_auth_response(plugin_name, mysql_options.password, scramble, ssl_established)
+            write_packet(seq) do |pkt|
+              pkt.write(auth_response)
+            end
+            seq += 1
+          when 0x01
+            # AuthMoreData
+            seq = handle_auth_more_data(packet, plugin_name, mysql_options.password, scramble, ssl_established, seq)
+          else
+            raise PacketError.new("Unexpected auth packet status: #{status}")
+          end
+        end
       end
     rescue IO::Error
       raise DB::ConnectionRefused.new
@@ -219,6 +266,65 @@ class MySql::Connection < DB::Connection
     else
       raise PacketError.new(message)
     end
+  end
+
+  private def handle_auth_more_data(packet : ReadPacket, plugin_name : String, password : String?, scramble : Bytes, ssl_established : Bool, seq : Int32) : Int32
+    case plugin_name
+    when "caching_sha2_password"
+      flag = packet.read_byte!
+      case flag
+      when 0x03
+        # Fast auth success — next packet will be OK
+      when 0x04
+        # Full authentication required
+        if ssl_established
+          # Over TLS: send plaintext password null-terminated
+          write_packet(seq) do |pkt|
+            pkt.write(Auth.clear_password(password || ""))
+          end
+          seq += 1
+        else
+          # Request RSA public key
+          write_packet(seq) do |pkt|
+            pkt.write_byte(0x02_u8)
+          end
+          seq += 1
+
+          # Read RSA public key
+          read_packet do |key_packet|
+            seq = key_packet.seq.to_i32 + 1
+            key_status = key_packet.read_byte!
+            raise PacketError.new("Expected AuthMoreData with RSA key, got #{key_status}") unless key_status == 0x01
+            pem_data = key_packet.read_string(key_packet.remaining)
+            encrypted = Auth.rsa_encrypt_password(password || "", scramble, pem_data)
+            write_packet(seq) do |pkt|
+              pkt.write(encrypted)
+            end
+            seq += 1
+          end
+        end
+      else
+        raise PacketError.new("Unexpected caching_sha2_password flag: #{flag}")
+      end
+    when "sha256_password"
+      pem_data = packet.read_string(packet.remaining)
+      if ssl_established
+        # Over TLS: send plaintext password null-terminated
+        write_packet(seq) do |pkt|
+          pkt.write(Auth.clear_password(password || ""))
+        end
+        seq += 1
+      else
+        encrypted = Auth.rsa_encrypt_password(password || "", scramble, pem_data)
+        write_packet(seq) do |pkt|
+          pkt.write(encrypted)
+        end
+        seq += 1
+      end
+    else
+      raise PacketError.new("AuthMoreData not expected for plugin: #{plugin_name}")
+    end
+    seq
   end
 
   # :nodoc:

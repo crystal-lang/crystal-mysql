@@ -90,10 +90,10 @@ module MySql::Auth
   end
 
   # Constants from OpenSSL evp.h
-  EVP_PKEY_RSA              =  6
-  EVP_PKEY_OP_ENCRYPT       =  1 << 9
+  EVP_PKEY_RSA              = 6
+  EVP_PKEY_OP_ENCRYPT       = 1 << 9
   EVP_PKEY_CTRL_RSA_PADDING = 0x1001
-  RSA_PKCS1_OAEP_PADDING    =  4
+  RSA_PKCS1_OAEP_PADDING    =      4
 
   def self.rsa_encrypt_password(password : String, scramble : Bytes, pem_key : String) : Bytes
     xored = xor_password_scramble(password, scramble)

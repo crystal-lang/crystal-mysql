@@ -2,31 +2,31 @@ module MySql
   # https://dev.mysql.com/doc/dev/mysql-server/latest/group__group__cs__capabilities__flags.html
   @[Flags]
   enum Capability : UInt32
-    LongPassword              = 0x00000001
-    FoundRows                 = 0x00000002
-    LongFlag                  = 0x00000004
-    ConnectWithDB             = 0x00000008
-    NoSchema                  = 0x00000010
-    Compress                  = 0x00000020
-    ODBC                      = 0x00000040
-    LocalFiles                = 0x00000080
-    IgnoreSpace               = 0x00000100
-    Protocol41                = 0x00000200
-    Interactive               = 0x00000400
-    SSL                       = 0x00000800
-    IgnoreSigpipe             = 0x00001000
-    Transactions              = 0x00002000
-    Reserved                  = 0x00004000
-    SecureConnection          = 0x00008000
-    MultiStatements           = 0x00010000
-    MultiResults              = 0x00020000
-    PSMultiResults            = 0x00040000
-    PluginAuth                = 0x00080000
-    ConnectAttrs              = 0x00100000
+    LongPassword               = 0x00000001
+    FoundRows                  = 0x00000002
+    LongFlag                   = 0x00000004
+    ConnectWithDB              = 0x00000008
+    NoSchema                   = 0x00000010
+    Compress                   = 0x00000020
+    ODBC                       = 0x00000040
+    LocalFiles                 = 0x00000080
+    IgnoreSpace                = 0x00000100
+    Protocol41                 = 0x00000200
+    Interactive                = 0x00000400
+    SSL                        = 0x00000800
+    IgnoreSigpipe              = 0x00001000
+    Transactions               = 0x00002000
+    Reserved                   = 0x00004000
+    SecureConnection           = 0x00008000
+    MultiStatements            = 0x00010000
+    MultiResults               = 0x00020000
+    PSMultiResults             = 0x00040000
+    PluginAuth                 = 0x00080000
+    ConnectAttrs               = 0x00100000
     PluginAuthLenencClientData = 0x00200000
-    CanHandleExpiredPasswords = 0x00400000
-    SessionTrack              = 0x00800000
-    DeprecateEOF              = 0x01000000
+    CanHandleExpiredPasswords  = 0x00400000
+    SessionTrack               = 0x00800000
+    DeprecateEOF               = 0x01000000
   end
 end
 

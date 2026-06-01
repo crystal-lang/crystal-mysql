@@ -1,0 +1,47 @@
+# Usage:
+#   docker compose -f docker-compose.auth-test.yml up -d
+#   docker compose -f docker-compose.auth-test.yml down -v
+
+services:
+  mysql57:
+    image: biarms/mysql:5.7
+    environment:
+      MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'
+    ports:
+      - "13306:3306"
+
+  mysql8:
+    image: mysql:8.0
+    environment:
+      MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'
+    ports:
+      - "13307:3306"
+    volumes:
+      - ./docker/auth-test/mysql8-init.sql:/docker-entrypoint-initdb.d/init.sql
+
+  mysql8_native:
+    image: mysql:8.0
+    environment:
+      MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'
+    command:
+      - --default-authentication-plugin=mysql_native_password
+    ports:
+      - "13308:3306"
+    volumes:
+      - ./docker/auth-test/mysql8n-init.sql:/docker-entrypoint-initdb.d/init.sql
+
+  mysql9:
+    image: mysql:9
+    environment:
+      MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'
+    ports:
+      - "13309:3306"
+    volumes:
+      - ./docker/auth-test/mysql9-init.sql:/docker-entrypoint-initdb.d/init.sql
+
+  mariadb11:
+    image: mariadb:11
+    environment:
+      MARIADB_ALLOW_EMPTY_ROOT_PASSWORD: 'yes'
+    ports:
+      - "13311:3306"

@@ -9,6 +9,8 @@ module MySql::Auth
       native_password(password, scramble) do |auth_response|
         yield auth_response
       end
+    when "mysql_clear_password"
+      clear_password(password)
     else
       raise MySql::Connection::PacketError.new("Unsupported auth plugin: #{plugin_name}")
     end
@@ -32,5 +34,12 @@ module MySql::Auth
     }
 
     yield Bytes.new(buffer.to_unsafe, 20)
+  end
+
+  def self.clear_password(password : String) : Bytes
+    bytes = Bytes.new(password.bytesize + 1)
+    bytes[0, password.bytesize].copy_from(password.to_slice)
+    bytes[password.bytesize] = 0_u8
+    bytes
   end
 end

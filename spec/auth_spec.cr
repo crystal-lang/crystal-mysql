@@ -21,6 +21,14 @@ describe MySql::Auth do
     end
   end
 
+  describe ".caching_sha2_password" do
+    it "matches reference vector for password='secret', scramble='12345678901234567890'" do
+      MySql::Auth.caching_sha2_password("secret", "12345678901234567890".to_slice,
+        &.hexstring.should eq("51ecd6dedbd34d5445c0a190d4f51acf0d23b94db66c91f3f789faa9193751cd")
+      )
+    end
+  end
+
   describe ".clear_password" do
     it "appends null terminator" do
       MySql::Auth.clear_password("foo",
@@ -38,7 +46,7 @@ describe MySql::Auth do
   describe ".compute_auth_response" do
     it "raises on unsupported plugin" do
       expect_raises(MySql::Connection::PacketError, /Unsupported auth plugin/) do
-        MySql::Auth.compute_auth_response("nonexistent_plugin", "x", "12345678901234567890".to_slice) {}
+        MySql::Auth.compute_auth_response("nonexistent_plugin", "x", "12345678901234567890".to_slice) { }
       end
     end
 
@@ -57,6 +65,12 @@ describe MySql::Auth do
     it "dispatches to native_password for mysql_native_password" do
       MySql::Auth.compute_auth_response("mysql_native_password", "secret", "12345678901234567890".to_slice,
         &.hexstring.should(eq("0f8b9033e0897c0a8338ebe3dea9010dda47ab56"))
+      )
+    end
+
+    it "dispatches to caching_sha2_password for caching_sha2_password" do
+      MySql::Auth.compute_auth_response("caching_sha2_password", "secret", "12345678901234567890".to_slice,
+        &.hexstring.should eq("51ecd6dedbd34d5445c0a190d4f51acf0d23b94db66c91f3f789faa9193751cd")
       )
     end
 

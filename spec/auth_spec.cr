@@ -21,6 +21,20 @@ describe MySql::Auth do
     end
   end
 
+  describe ".clear_password" do
+    it "appends null terminator" do
+      MySql::Auth.clear_password("foo",
+        &.should eq(Bytes[0x66, 0x6f, 0x6f, 0x00])
+      )
+    end
+
+    it "handles empty password" do
+      MySql::Auth.clear_password("",
+        &.should eq(Bytes[0x00])
+      )
+    end
+  end
+
   describe ".compute_auth_response" do
     it "raises on unsupported plugin" do
       expect_raises(MySql::Connection::PacketError, /Unsupported auth plugin/) do
@@ -43,6 +57,12 @@ describe MySql::Auth do
     it "dispatches to native_password for mysql_native_password" do
       MySql::Auth.compute_auth_response("mysql_native_password", "secret", "12345678901234567890".to_slice,
         &.hexstring.should(eq("0f8b9033e0897c0a8338ebe3dea9010dda47ab56"))
+      )
+    end
+
+    it "dispatches to clear_password for mysql_clear_password" do
+      MySql::Auth.compute_auth_response("mysql_clear_password", "foo", "12345678901234567890".to_slice,
+        &.should eq(Bytes[0x66, 0x6f, 0x6f, 0x00])
       )
     end
   end

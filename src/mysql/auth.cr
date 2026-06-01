@@ -10,7 +10,9 @@ module MySql::Auth
         yield auth_response
       end
     when "mysql_clear_password"
-      clear_password(password)
+      clear_password(password) do |auth_response|
+        yield auth_response
+      end
     else
       raise MySql::Connection::PacketError.new("Unsupported auth plugin: #{plugin_name}")
     end
@@ -36,10 +38,8 @@ module MySql::Auth
     yield Bytes.new(buffer.to_unsafe, 20)
   end
 
-  def self.clear_password(password : String) : Bytes
-    bytes = Bytes.new(password.bytesize + 1)
-    bytes[0, password.bytesize].copy_from(password.to_slice)
-    bytes[password.bytesize] = 0_u8
-    bytes
+  def self.clear_password(password : String, & : Bytes -> _)
+    # Duping the string as a slice. MySQL protocol expects the trailing null byte to be included.
+    yield Bytes.new(password.to_unsafe, password.bytesize + 1).dup
   end
 end

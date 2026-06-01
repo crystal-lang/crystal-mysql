@@ -1,5 +1,6 @@
 require "socket"
 require "openssl"
+require "./auth"
 
 class MySql::Connection < DB::Connection
   class PacketError < Exception; end

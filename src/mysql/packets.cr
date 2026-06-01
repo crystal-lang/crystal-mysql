@@ -33,11 +33,14 @@ module MySql
 end
 
 module MySql::Protocol
+  # https://dev.mysql.com/doc/dev/mysql-server/latest/page_protocol_connection_phase_packets_protocol_handshake_v10.html
   struct HandshakeV10
     getter auth_plugin_data : Bytes
     getter charset : UInt8
+    getter server_capabilities : Capability
+    getter server_plugin_name : String
 
-    def initialize(@auth_plugin_data, @charset)
+    def initialize(@auth_plugin_data, @charset, @server_capabilities, @server_plugin_name)
     end
 
     def self.read(packet : MySql::ReadPacket)
@@ -55,19 +58,21 @@ module MySql::Protocol
       cap3 = packet.read_byte!
       cap4 = packet.read_byte!
 
+      server_capabilities = Capability.new(cap1.to_u32 | (cap2.to_u32 << 8) | (cap3.to_u32 << 16) | (cap4.to_u32 << 24))
+
       auth_plugin_data_length = packet.read_byte!
       packet.read_byte_array(10)
       packet.read_fully(auth_data[8, {13, auth_plugin_data_length.to_i16 - 8}.max - 1])
       packet.read_byte!
-      packet.read_string
+      server_plugin_name = packet.read_string
 
-      HandshakeV10.new(auth_data, charset)
+      HandshakeV10.new(auth_data, charset, server_capabilities, server_plugin_name)
     end
   end
 
   # https://dev.mysql.com/doc/dev/mysql-server/latest/page_protocol_connection_phase_packets_protocol_handshake_response.html#sect_protocol_connection_phase_packets_protocol_handshake_response41
   struct HandshakeResponse41
-    def initialize(@username : String?, @password : String?, @initial_catalog : String?, @auth_plugin_data : Bytes, @charset : UInt8)
+    def initialize(@username : String?, @password : String?, @initial_catalog : String?, @auth_plugin_data : Bytes, @charset : UInt8, @plugin_name : String = "mysql_native_password")
     end
 
     # https://dev.mysql.com/doc/dev/mysql-server/latest/page_protocol_connection_phase_packets_protocol_ssl_request.html

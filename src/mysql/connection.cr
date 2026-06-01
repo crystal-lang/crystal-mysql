@@ -108,7 +108,9 @@ class MySql::Connection < DB::Connection
 
       handshake = read_packet(Protocol::HandshakeV10)
 
-      handshake_response = Protocol::HandshakeResponse41.new(mysql_options.username, mysql_options.password, mysql_options.initial_catalog, handshake.auth_plugin_data, charset_id)
+      handshake_response = Protocol::HandshakeResponse41.new(
+        mysql_options.username, mysql_options.password, mysql_options.initial_catalog,
+        handshake.auth_plugin_data, charset_id, handshake.server_plugin_name)
       seq = 1
 
       if mysql_options.ssl_options.mode != SSLMode::Disabled &&

@@ -4,8 +4,9 @@ module MySql::Protocol
   struct HandshakeV10
     getter auth_plugin_data : Bytes
     getter charset : UInt8
+    getter version : String
 
-    def initialize(@auth_plugin_data, @charset)
+    def initialize(@auth_plugin_data, @charset, @version)
     end
 
     def self.read(packet : MySql::ReadPacket)
@@ -29,7 +30,7 @@ module MySql::Protocol
       packet.read_byte!
       packet.read_string
 
-      HandshakeV10.new(auth_data, charset)
+      HandshakeV10.new(auth_data, charset, version)
     end
   end
 

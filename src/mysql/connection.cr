@@ -86,6 +86,8 @@ class MySql::Connection < DB::Connection
     end
   end
 
+  @server_version : String = ""
+
   def initialize(options : ::DB::Connection::Options, mysql_options : ::MySql::Connection::Options)
     super(options)
     @socket = uninitialized UNIXSocket | TCPSocket | OpenSSL::SSL::Socket::Client
@@ -107,6 +109,7 @@ class MySql::Connection < DB::Connection
         end
 
       handshake = read_packet(Protocol::HandshakeV10)
+      @server_version = handshake.version
 
       handshake_response = Protocol::HandshakeResponse41.new(mysql_options.username, mysql_options.password, mysql_options.initial_catalog, handshake.auth_plugin_data, charset_id)
       seq = 1
@@ -271,6 +274,23 @@ class MySql::Connection < DB::Connection
         eof_packet.read_byte # TODO assert EOF Packet
       end
     end
+  end
+
+  # :inherit:
+  def driver_name : String
+    "mysql"
+  end
+
+  # :inherit:
+  #
+  # MariaDB reports a version containing `MariaDB` (e.g. `"12.2.2-MariaDB-ubu2404"`), MySQL doesn't.
+  def server_name : String?
+    @server_version.includes?("MariaDB") ? "MariaDB" : "MySQL"
+  end
+
+  # :inherit:
+  def server_version : String?
+    @server_version
   end
 
   def build_prepared_statement(query) : MySql::Statement

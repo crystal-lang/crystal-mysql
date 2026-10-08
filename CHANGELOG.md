@@ -1,3 +1,9 @@
+## v0.18.0 (2026-10-08)
+
+* Replace Travis CI badge with GitHub Action ([#120](https://github.com/crystal-lang/crystal-mysql/pull/120), thanks @bcardiff)
+* Handle err packet gracefully ([#122](https://github.com/crystal-lang/crystal-mysql/pull/122), thanks @aw)
+* Update shard to `crystal-db` version `0.15.0` ([#125](https://github.com/crystal-lang/crystal-mysql/pull/125), thanks @blacksmoke16)
+
 ## v0.17.0 (2025-09-05)
 
 * Add support for unix socket connection. ([#115](https://github.com/crystal-lang/crystal-mysql/pull/115), thanks @bcardiff)
